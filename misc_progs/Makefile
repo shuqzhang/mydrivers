@@ -1,4 +1,4 @@
-FILES = setlevel hello
+FILES = setlevel hello setconsole
 
 KERNELDIR ?= $(KERNEL_CODE_DIR)
 INCLUDEDIR = $(KERNELDIR)/include
