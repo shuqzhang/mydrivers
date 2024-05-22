@@ -1,7 +1,14 @@
 #KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 KERNELDIR ?= $(KERNEL_CODE_DIR)
 PWD := $(shell pwd)
+DEBUG = y
+ifeq (${DEBUG}, y)
+	DBGFLAGS = -O -g -DSCULLC_DEBUG # "-O" is need to expand to inlines ? 
+else
+	DBGFLAGS = -O2
+endif
 
+CFLAGS += ${DBGFLAGS}
 # Kernel modules
 obj-m += scullc.o
 

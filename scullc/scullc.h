@@ -5,6 +5,20 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
+#undef PDEBUG
+#ifdef SCULLC_DEBUG
+    #ifdef __KERNEL__
+    #define PDEBUG(fmt, args...) printk(KERN_DEBUG "scullc: "fmt, ##args);
+    #else
+    #define PDEBUG(fmt, args...) fprintf(stderr, fmt, ##args);
+    #endif
+#else
+    #define PDEBUG(fmt, args...)
+#endif
+
+#undef PDEBUGG
+#define PDEBUGG(fmt, args...)
+
 struct scullc_qset
 {
     void** data;

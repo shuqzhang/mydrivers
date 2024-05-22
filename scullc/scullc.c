@@ -34,7 +34,7 @@ static int scullc_open(struct inode* inode, struct file* filp)
 {
     int ret = 0;
     struct scullc_dev* dev = container_of(inode->i_cdev, struct scullc_dev, cdev);
-
+    PDEBUG("hello, open it");
     filp->private_data = dev;
     if ((filp->f_flags & O_ACCMODE) == O_WRONLY)
     {
@@ -221,6 +221,7 @@ static int __init scull_init(void)
 {
     int res = 0, i = 0;
     dev_t dev = MKDEV(scull_major, 0);
+    printk(KERN_ALERT "hello, pdebug");
 
     if (scull_major)
     {
