@@ -74,3 +74,12 @@ qemu-system-aarch64 \
 5.2 Set LD_LIBRARY_PATH (using source /etc/profile to setup enviroment variables)
 
 
+6. Make a sharing folder with qemu.
+
+dd if=/dev/zero of=share.img bs=4M count=1k
+mkfs.ext4 share.img
+
+mkdir share
+mount -o loop share.img share
+
+
