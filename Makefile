@@ -8,8 +8,9 @@ SUBDIRS = hello globalmem scullc misc_progs
 LINUX_KERNEL_VERSION=5.4.275
 HOME=/home/$(shell users)
 KERNEL_CODE_DIR = $(HOME)/armlinux/linux-$(LINUX_KERNEL_VERSION)
+PROJ_DIR=$(HOME)/mydrivers
 
-export LINUX_KERNEL_VERSION HOME KERNEL_CODE_DIR
+export LINUX_KERNEL_VERSION HOME KERNEL_CODE_DIR PROJ_DIR
 
 all: subdirs
 

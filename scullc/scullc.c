@@ -95,6 +95,8 @@ static ssize_t scullc_read(struct file* filp, char __user *buff, size_t count, l
     int item, s_pos, q_pos, rest;
     ssize_t retval;
 
+    PDEBUG("hello, read it");
+
     if (down_interruptible(&dev->sem))
     {
         return -ERESTARTSYS;
@@ -137,7 +139,7 @@ static ssize_t scullc_write(struct file* filp, const char __user *buff, size_t c
     int qset = dev->qset, quantum = dev->quantum;
     int qset_size = qset * quantum;
     int item, rest, s_pos, q_pos;
-
+    PDEBUG("test write ");
     if (down_interruptible(&dev->sem))
     {
         return -ERESTARTSYS;
@@ -221,7 +223,7 @@ static int __init scull_init(void)
 {
     int res = 0, i = 0;
     dev_t dev = MKDEV(scull_major, 0);
-    printk(KERN_ALERT "hello, pdebug");
+    PDEBUG("hello, pdebug");
 
     if (scull_major)
     {
@@ -274,6 +276,7 @@ module_init(scull_init);
 static void __exit scull_exit(void)
 {
     int i;
+    PDEBUG("good bye, pdebug");
     for (i = 0; i < scull_nr_devs; i++)
     {
         struct scullc_dev* dev = &scullc_devices[i];

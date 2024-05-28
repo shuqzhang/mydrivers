@@ -4,14 +4,15 @@
 #include <linux/cdev.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
+//#include "../kernelmode.h"
 
 #undef PDEBUG
 #ifdef SCULLC_DEBUG
-    #ifdef __KERNEL__
-    #define PDEBUG(fmt, args...) printk(KERN_DEBUG "scullc: "fmt, ##args);
-    #else
-    #define PDEBUG(fmt, args...) fprintf(stderr, fmt, ##args);
-    #endif
+    //#ifdef __KERNEL__
+    #define PDEBUG(fmt, args...) printk(KERN_ALERT "scullc: "fmt, ##args);
+    //#else
+    //#define PDEBUG(fmt, args...) fprintf(stderr, fmt, ##args);
+    //#endif
 #else
     #define PDEBUG(fmt, args...)
 #endif
