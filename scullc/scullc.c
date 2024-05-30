@@ -93,9 +93,10 @@ static ssize_t scullc_read(struct file* filp, char __user *buff, size_t count, l
     int qset = dev->qset;
     int itemsize = quantum * qset;
     int item, s_pos, q_pos, rest;
-    ssize_t retval;
+    ssize_t retval = 0;
 
     PDEBUG("hello, read it");
+    PDEBUG("f_pos=%lld count %ld dev->size %ld", *f_pos, count, dev->size);
 
     if (down_interruptible(&dev->sem))
     {
@@ -109,6 +110,7 @@ static ssize_t scullc_read(struct file* filp, char __user *buff, size_t count, l
     rest = (long)(*f_pos) % itemsize;
     s_pos = rest / quantum;
     q_pos = rest % quantum;
+    PDEBUG("item %d, rest %d, s_pos %d, q_pos %d", item, rest, s_pos, q_pos);
     dptr = scullc_follow(&dev->data, item);
     if (dptr == NULL || dptr->data == NULL || dptr->data[s_pos] == NULL)
     {
@@ -128,6 +130,7 @@ static ssize_t scullc_read(struct file* filp, char __user *buff, size_t count, l
 
 out:
     up(&dev->sem);
+    PDEBUG("retval=%ld", retval);
     return retval;
 }
 
