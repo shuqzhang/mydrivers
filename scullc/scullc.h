@@ -9,7 +9,7 @@
 #undef PDEBUG
 #ifdef SCULLC_DEBUG
     //#ifdef __KERNEL__
-    #define PDEBUG(fmt, args...) printk(KERN_ALERT "scullc: "fmt, ##args);
+    #define PDEBUG(fmt, args...) printk(KERN_DEBUG "scullc: "fmt"\n", ##args);
     //#else
     //#define PDEBUG(fmt, args...) fprintf(stderr, fmt, ##args);
     //#endif

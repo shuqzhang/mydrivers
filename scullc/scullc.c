@@ -1,4 +1,5 @@
 #include "scullc.h"
+#include <linux/kdev_t.h>
 
 static int scull_major = 0;
 static int scull_minor = 0;
@@ -210,6 +211,8 @@ static const struct file_operations scull_fops = {
 static bool scullc_setup_cdev(struct scullc_dev* dev, int index)
 {
     int devno = MKDEV(scull_major, scull_minor + index), res;
+    char buffer[10];
+    PDEBUG("devno %s adding...", format_dev_t(buffer, devno));
     cdev_init(&dev->cdev, &scull_fops);
     dev->cdev.owner = THIS_MODULE;
     dev->cdev.ops = &scull_fops;
