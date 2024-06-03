@@ -4,7 +4,7 @@ PWD := $(shell pwd)
 DEBUG := y
 DBGFLAGS :=
 ifeq (${DEBUG}, y)
-	DBGFLAGS := -O -g -DSCULLC_DEBUG # "-O" is need to expand to inlines ? 
+	DBGFLAGS := -O -g -DSCULL_DEBUG # "-O" is need to expand to inlines ? 
 else
 	DBGFLAGS := -O2
 endif
@@ -14,7 +14,7 @@ ifneq ($(KERNELRELEASE),)
 # call from kernel build system
 
 # Kernel modules
-obj-m += scullc.o
+obj-m += scull.o
 
 else
 

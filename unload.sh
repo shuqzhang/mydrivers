@@ -1,3 +1,3 @@
 #/bin/bash
 
-(cd scullc && ./scullc_unload.sh)
+(cd scull && ./scull_unload.sh)

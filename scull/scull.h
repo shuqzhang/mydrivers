@@ -7,9 +7,9 @@
 //#include "../kernelmode.h"
 
 #undef PDEBUG
-#ifdef SCULLC_DEBUG
+#ifdef SCULL_DEBUG
     //#ifdef __KERNEL__
-    #define PDEBUG(fmt, args...) printk(KERN_DEBUG "scullc: "fmt"\n", ##args);
+    #define PDEBUG(fmt, args...) printk(KERN_DEBUG "scull: "fmt"\n", ##args);
     //#else
     //#define PDEBUG(fmt, args...) fprintf(stderr, fmt, ##args);
     //#endif
@@ -20,15 +20,15 @@
 #undef PDEBUGG
 #define PDEBUGG(fmt, args...)
 
-struct scullc_qset
+struct scull_qset
 {
     void** data;
-    struct scullc_qset* next;
+    struct scull_qset* next;
 };
 
-struct scullc_dev
+struct scull_dev
 {
-    struct scullc_qset* data;
+    struct scull_qset* data;
     int quantum;
     int qset;
     unsigned int access_key;
@@ -37,7 +37,7 @@ struct scullc_dev
     ssize_t size;
 };
 
-struct scullc_dev* scullc_devices;
+struct scull_dev* scull_devices;
 
 #define USE_DEFAULT_CONF
 

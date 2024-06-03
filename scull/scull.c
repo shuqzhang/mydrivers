@@ -1,13 +1,13 @@
-#include "scullc.h"
+#include "scull.h"
 #include <linux/kdev_t.h>
 
 static int scull_major = 0;
 static int scull_minor = 0;
 static int scull_nr_devs = 4;
 
-static void scullc_trim(struct scullc_dev* dev)
+static void scull_trim(struct scull_dev* dev)
 {
-    struct scullc_qset *dptr, *next;
+    struct scull_qset *dptr, *next;
     int i;
     void** data;
     dptr = dev->data;
@@ -31,52 +31,52 @@ static void scullc_trim(struct scullc_dev* dev)
     }
 }
 
-static int scullc_open(struct inode* inode, struct file* filp)
+static int scull_open(struct inode* inode, struct file* filp)
 {
     int ret = 0;
-    struct scullc_dev* dev = container_of(inode->i_cdev, struct scullc_dev, cdev);
+    struct scull_dev* dev = container_of(inode->i_cdev, struct scull_dev, cdev);
     PDEBUG("hello, open it");
     filp->private_data = dev;
     if ((filp->f_flags & O_ACCMODE) == O_WRONLY)
     {
-        scullc_trim(dev);
+        scull_trim(dev);
     }
 
     return ret;
 }
 
-static int scullc_release(struct inode* inode, struct file* filp)
+static int scull_release(struct inode* inode, struct file* filp)
 {
     int ret = 0;
 
     return ret;
 }
 
-struct scullc_qset* scullc_follow(struct scullc_qset** head, int item)
+struct scull_qset* scull_follow(struct scull_qset** head, int item)
 {
-    struct scullc_qset *qs = *head, *prev = NULL;
+    struct scull_qset *qs = *head, *prev = NULL;
     if (*head == NULL)
     {
-        qs = (struct scullc_qset*)kmalloc(sizeof(struct scullc_qset), GFP_KERNEL);
+        qs = (struct scull_qset*)kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
         if (qs == NULL)
         {
             printk(KERN_ALERT "alloc qset failure.");
             return NULL;
         }
-        memset(qs, 0, sizeof(struct scullc_qset));
+        memset(qs, 0, sizeof(struct scull_qset));
         *head = qs;
     }
     while (item >= 0)
     {
         if (qs == NULL)
         {
-            qs = (struct scullc_qset*)kmalloc(sizeof(struct scullc_qset), GFP_KERNEL);
+            qs = (struct scull_qset*)kmalloc(sizeof(struct scull_qset), GFP_KERNEL);
             if (qs == NULL)
             {
                 printk(KERN_ALERT "alloc qset failure.");
                 return NULL;
             }
-            memset(qs, 0, sizeof(struct scullc_qset));
+            memset(qs, 0, sizeof(struct scull_qset));
             prev->next = qs;
         }
         prev = qs;
@@ -86,10 +86,10 @@ struct scullc_qset* scullc_follow(struct scullc_qset** head, int item)
     return prev;
 }
 
-static ssize_t scullc_read(struct file* filp, char __user *buff, size_t count, loff_t* f_pos)
+static ssize_t scull_read(struct file* filp, char __user *buff, size_t count, loff_t* f_pos)
 {
-    struct scullc_dev* dev = filp->private_data;
-    struct scullc_qset* dptr = NULL;
+    struct scull_dev* dev = filp->private_data;
+    struct scull_qset* dptr = NULL;
     int quantum = dev->quantum;
     int qset = dev->qset;
     int itemsize = quantum * qset;
@@ -112,7 +112,7 @@ static ssize_t scullc_read(struct file* filp, char __user *buff, size_t count, l
     s_pos = rest / quantum;
     q_pos = rest % quantum;
     PDEBUG("item %d, rest %d, s_pos %d, q_pos %d", item, rest, s_pos, q_pos);
-    dptr = scullc_follow(&dev->data, item);
+    dptr = scull_follow(&dev->data, item);
     if (dptr == NULL || dptr->data == NULL || dptr->data[s_pos] == NULL)
     {
         goto out;
@@ -135,11 +135,11 @@ out:
     return retval;
 }
 
-static ssize_t scullc_write(struct file* filp, const char __user *buff, size_t count, loff_t* f_pos)
+static ssize_t scull_write(struct file* filp, const char __user *buff, size_t count, loff_t* f_pos)
 {
     ssize_t retval = -ENOMEM;
-    struct scullc_dev* dev = (struct scullc_dev*)filp->private_data;
-    struct scullc_qset* dptr = NULL;
+    struct scull_dev* dev = (struct scull_dev*)filp->private_data;
+    struct scull_qset* dptr = NULL;
     int qset = dev->qset, quantum = dev->quantum;
     int qset_size = qset * quantum;
     int item, rest, s_pos, q_pos;
@@ -153,7 +153,7 @@ static ssize_t scullc_write(struct file* filp, const char __user *buff, size_t c
     rest = (*f_pos) % qset_size;
     s_pos = rest / quantum;
     q_pos = rest % quantum;
-    dptr = scullc_follow(&dev->data, item);
+    dptr = scull_follow(&dev->data, item);
 
     if (dptr == NULL)
     {
@@ -201,14 +201,19 @@ out:
 static const struct file_operations scull_fops = {
     .owner = THIS_MODULE,
     .llseek = NULL, // globalmem_llseek,
-    .read = scullc_read,
-    .write = scullc_write,
+    .read = scull_read,
+    .write = scull_write,
     .unlocked_ioctl = NULL, // globalmem_ioctl,
-    .open = scullc_open,
-    .release = scullc_release,
+    .open = scull_open,
+    .release = scull_release,
 };
 
-static bool scullc_setup_cdev(struct scullc_dev* dev, int index)
+static void scull_create_proc(void)
+{
+
+}
+
+static bool scull_setup_cdev(struct scull_dev* dev, int index)
 {
     int devno = MKDEV(scull_major, scull_minor + index), res;
     char buffer[10];
@@ -233,11 +238,11 @@ static int __init scull_init(void)
 
     if (scull_major)
     {
-        res = register_chrdev_region(dev, scull_nr_devs, "scullc");
+        res = register_chrdev_region(dev, scull_nr_devs, "scull");
     }
     else
     {
-        res = alloc_chrdev_region(&dev, 0, scull_nr_devs, "scullc");
+        res = alloc_chrdev_region(&dev, 0, scull_nr_devs, "scull");
         scull_major = MAJOR(dev);
         scull_minor = MINOR(dev);
     }
@@ -250,27 +255,31 @@ static int __init scull_init(void)
 	 * allocate the devices -- we can't have them static, as the number
 	 * can be specified at load time
 	 */
-    scullc_devices = kmalloc(sizeof(struct scullc_dev) * scull_nr_devs, GFP_KERNEL);
-    if (!scullc_devices)
+    scull_devices = kmalloc(sizeof(struct scull_dev) * scull_nr_devs, GFP_KERNEL);
+    if (!scull_devices)
     {
         goto fail_malloc;
     }
-    memset(scullc_devices, 0, sizeof(struct scullc_dev) * scull_nr_devs);
+    memset(scull_devices, 0, sizeof(struct scull_dev) * scull_nr_devs);
     for (i = 0; i < scull_nr_devs; i++)
     {
-        scullc_devices[i].qset = QSET_SIZE;
-        scullc_devices[i].quantum = QUANTUM_SIZE;
-        scullc_devices[i].data = NULL;
-        sema_init(&scullc_devices[i].sem, 1);
-        if (!scullc_setup_cdev(&scullc_devices[i], i))
+        scull_devices[i].qset = QSET_SIZE;
+        scull_devices[i].quantum = QUANTUM_SIZE;
+        scull_devices[i].data = NULL;
+        sema_init(&scull_devices[i].sem, 1);
+        if (!scull_setup_cdev(&scull_devices[i], i))
         {
             goto fail_cdev;
         }
     }
 
+#ifdef SCULL_DEBUG /* only when debugging */
+	scull_create_proc();
+#endif
+
     return 0;
 fail_cdev:
-    kfree(scullc_devices);
+    kfree(scull_devices);
 fail_malloc:
     unregister_chrdev_region(dev, scull_nr_devs);
 fail_region:
@@ -285,11 +294,11 @@ static void __exit scull_exit(void)
     PDEBUG("good bye, pdebug");
     for (i = 0; i < scull_nr_devs; i++)
     {
-        struct scullc_dev* dev = &scullc_devices[i];
+        struct scull_dev* dev = &scull_devices[i];
         cdev_del(&(dev->cdev));
     }
     unregister_chrdev_region(MKDEV(scull_major, scull_minor), scull_nr_devs);
-    kfree(scullc_devices);
+    kfree(scull_devices);
 }
 
 module_exit(scull_exit);

@@ -3,7 +3,7 @@
 #           skull scull scullc sculld scullp scullv sbull snull\
 #	   short shortprint pci simple usb tty lddbus
 
-SUBDIRS = hello globalmem scullc misc_progs
+SUBDIRS = hello globalmem scull misc_progs
 
 LINUX_KERNEL_VERSION=5.4.275
 HOME=/home/$(shell users)

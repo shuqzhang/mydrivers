@@ -1,6 +1,6 @@
 #!/bin/sh
-module="scullc"
-device="scullc"
+module="scull"
+device="scull"
 mode="664"
 
 # Group: since distributions do it differently, look for wheel or use staff
@@ -24,7 +24,7 @@ mknod /dev/${device}0 c $major 0
 mknod /dev/${device}1 c $major 1
 mknod /dev/${device}2 c $major 2
 mknod /dev/${device}3 c $major 3
-ln -sf /dev/${device}0  /dev/${device}  # file is not linked to device, but changed to be another file after "cp [file] /dev/scullc", why?
+ln -sf /dev/${device}0  /dev/${device}  # file is not linked to device, but changed to be another file after "cp [file] /dev/scull", why?
 
 # give appropriate group/permissions
 # chgrp $group /dev/${device}[0-3]

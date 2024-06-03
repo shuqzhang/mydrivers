@@ -1,3 +1,3 @@
 #/bin/bash
 
-(cd scullc && ./scullc_load.sh)
+(cd scull && ./scull_load.sh)
