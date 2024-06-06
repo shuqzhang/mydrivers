@@ -295,6 +295,11 @@ static void scull_create_proc(void)
     }
 }
 
+static void scull_remove_proc(void)
+{
+    remove_proc_entry("scullmem", NULL);
+}
+
 static bool scull_setup_cdev(struct scull_dev* dev, int index)
 {
     int devno = MKDEV(scull_major, scull_minor + index), res;
@@ -375,6 +380,9 @@ static void __exit scull_exit(void)
 {
     int i;
     PDEBUG("good bye, pdebug");
+#ifdef SCULL_DEBUG /* use proc only if debugging */
+	scull_remove_proc();
+#endif
     for (i = 0; i < scull_nr_devs; i++)
     {
         struct scull_dev* dev = &scull_devices[i];
