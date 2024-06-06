@@ -4,7 +4,8 @@
 #include <linux/cdev.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
-//#include "../kernelmode.h"
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 
 #undef PDEBUG
 #ifdef SCULL_DEBUG

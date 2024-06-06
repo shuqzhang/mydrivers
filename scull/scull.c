@@ -5,6 +5,8 @@ static int scull_major = 0;
 static int scull_minor = 0;
 static int scull_nr_devs = 4;
 
+
+
 static void scull_trim(struct scull_dev* dev)
 {
     struct scull_qset *dptr, *next;
@@ -208,9 +210,89 @@ static const struct file_operations scull_fops = {
     .release = scull_release,
 };
 
+static int proc_open(struct inode *inode, struct file *file)
+{
+	return 0;
+}
+
+static ssize_t proc_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos)
+{
+    struct scull_dev *devices = PDE_DATA(file_inode(file));
+    int i, j, len = 0;
+    // int limit = count - 80;
+    char *sbuf = NULL;
+    const int max_pages = 20;
+    const int page_size = 4096;
+    PDEBUG("scull_devices %px ppos %lld", devices, *ppos);
+
+    sbuf = (char *)kmalloc(max_pages * page_size, GFP_KERNEL);
+    if (!sbuf)
+    {
+        PDEBUG("failed to malloc for sbuf.");
+        return 0;
+    }
+    for (i = 0; i < scull_nr_devs; i++)
+    {
+        struct scull_dev* d = &devices[i];
+        struct scull_qset *qs = d->data;
+        if (down_interruptible(&d->sem))
+        {
+            kfree(sbuf);
+            return -ERESTARTSYS;
+        }
+        len += sprintf(sbuf + len, "\n Device %d: qset %d, quantum %d, sz %ld\n",
+            i, d->qset, d->quantum, d->size);
+        for (; qs; qs = qs->next)
+        {
+            len += sprintf(sbuf + len, "    item at %px, qset at %px\n", qs, qs->data);
+            if (qs->data && !qs->next)
+            {
+                for (j = 0; j < d->qset; j++)
+                {
+                    len += sprintf(sbuf + len, "    %4d: %px\n", j, qs->data[j]);
+                }
+            }
+        }
+
+        up(&d->sem);
+    }
+    if (*ppos >= len)
+    {
+        kfree(sbuf);
+        return 0;
+    }
+    PDEBUG("ppos %lld len %d count %ld", *ppos, len, count);
+    if (*ppos + count > len)
+    {
+        count = len - *ppos;
+    }
+    if (copy_to_user(buffer, sbuf + *ppos, count))
+    {
+        kfree(sbuf);
+        return -EFAULT;
+    }
+
+    *ppos += count; // not needed ? 
+    PDEBUG("ppos %lld len %d count %ld", *ppos, len, count);
+    kfree(sbuf);
+    return count;
+}
+
+static const struct file_operations scullmem_fops = {
+	.open  = proc_open,
+	.read  = proc_read,
+	.llseek = noop_llseek,
+};
+
 static void scull_create_proc(void)
 {
-
+    struct proc_dir_entry *ent;
+    ent = proc_create_data("scullmem", S_IRUGO|S_IWUSR, NULL,
+		&scullmem_fops, (void*)scull_devices); /* scull proc entry */
+	if (!ent)
+    {
+        PDEBUG("Failed to create proc entry for scull.");
+    }
 }
 
 static bool scull_setup_cdev(struct scull_dev* dev, int index)
@@ -272,6 +354,7 @@ static int __init scull_init(void)
             goto fail_cdev;
         }
     }
+    PDEBUG("scull_devices %px", scull_devices);
 
 #ifdef SCULL_DEBUG /* only when debugging */
 	scull_create_proc();
