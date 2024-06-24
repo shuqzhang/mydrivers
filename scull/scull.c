@@ -1,11 +1,10 @@
 #include "scull.h"
 #include <linux/kdev_t.h>
+#include <linux/seq_file.h>
 
 static int scull_major = 0;
 static int scull_minor = 0;
 static int scull_nr_devs = 4;
-
-
 
 static void scull_trim(struct scull_dev* dev)
 {
@@ -284,6 +283,81 @@ static const struct file_operations scullmem_fops = {
 	.llseek = noop_llseek,
 };
 
+void * scull_seq_start(struct seq_file *m, loff_t *pos)
+{
+    if (*pos >= scull_nr_devs)
+    {
+        return NULL;
+    }
+    return scull_devices + *pos;
+}
+
+void scull_seq_stop(struct seq_file *m, void *v)
+{
+
+}
+
+void * scull_seq_next(struct seq_file *m, void *v, loff_t *pos)
+{
+    (*pos)++;
+    if (*pos >= scull_nr_devs)
+    {
+        return NULL;
+    }
+    return scull_devices + *pos;
+}
+
+
+
+int scull_seq_show(struct seq_file *m, void *v)
+{
+    struct scull_dev* dev = (struct scull_dev *)v;
+    struct scull_qset *d = (struct scull_qset *)dev->data;
+    int i;
+    if (down_interruptible(&dev->sem))
+    {
+        return -ERESTARTSYS;
+    }
+    seq_printf(m, "\nDevice %i : qset %i, q %i, sz %li\n",
+        (int)(dev - scull_devices), dev->qset, dev->quantum, dev->size);
+    for (; d; d = d->next)
+    {
+        seq_printf(m, "     item at %px qset at %px\n", d, d->data);
+        if (d->data && !d->next)
+        {
+            for (i = 0; i < dev->qset; i++)
+            {
+                if (d->data[i])
+                {
+                    seq_printf(m, "             %4d: %px", i, d->data[i]);
+                }
+            }
+        }
+    }
+    up(&dev->sem);
+    return 0;
+}
+
+static const struct seq_operations scull_seq_ops = {
+    .start = scull_seq_start,
+    .next = scull_seq_next,
+    .stop = scull_seq_stop,
+    .show = scull_seq_show
+};
+
+static int scull_proc_open(struct inode* inode, struct file* file)
+{
+    return seq_open(file, &scull_seq_ops);
+}
+
+static const struct file_operations scull_proc_ops = {
+    .owner = THIS_MODULE,
+    .open = scull_proc_open,
+    .read = seq_read,
+    .llseek = seq_lseek,
+    .release = seq_release
+};
+
 static void scull_create_proc(void)
 {
     struct proc_dir_entry *ent;
@@ -293,6 +367,17 @@ static void scull_create_proc(void)
     {
         PDEBUG("Failed to create proc entry for scull.");
     }
+    ent = proc_create("scullseq", 0, NULL, &scull_proc_ops);
+    if (!ent)
+    {
+        PDEBUG("Failed to create proc entry(scullseq) for scull.");
+    }
+}
+
+static void scull_remove_proc(void)
+{
+    remove_proc_entry("scullmem", NULL);
+    remove_proc_entry("scullseq", NULL);
 }
 
 static void scull_remove_proc(void)
