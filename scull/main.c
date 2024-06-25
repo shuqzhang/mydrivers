@@ -30,6 +30,10 @@ static void scull_trim(struct scull_dev* dev)
         kfree(dptr);
         dptr = next;
     }
+    dev->size = 0;
+    dev->data = NULL;
+    dev->qset = QSET_SIZE;
+    dev->quantum = QUANTUM_SIZE;
 }
 
 static int scull_open(struct inode* inode, struct file* filp)
@@ -40,6 +44,7 @@ static int scull_open(struct inode* inode, struct file* filp)
     filp->private_data = dev;
     if ((filp->f_flags & O_ACCMODE) == O_WRONLY)
     {
+        PDEBUG("hello, open it with write mode");
         scull_trim(dev);
     }
 
