@@ -38,7 +38,13 @@ struct scull_dev
     ssize_t size;
 };
 
-struct scull_dev* scull_devices;
+extern struct scull_dev* scull_devices;
+extern int scull_nr_devs;
+extern int scull_major;
+extern int scull_minor;
+
+void scull_create_proc(void);
+void scull_remove_proc(void);
 
 #define USE_DEFAULT_CONF
 
