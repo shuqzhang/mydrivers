@@ -304,6 +304,8 @@ static void __exit scull_exit(void)
         cdev_del(&(dev->cdev));
     }
     unregister_chrdev_region(MKDEV(scull_major, scull_minor), scull_nr_devs);
+    //scull_devices = NULL;// create a oops
+    //scull_devices[0].size = 0;
     kfree(scull_devices);
 }
 
