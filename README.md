@@ -17,6 +17,13 @@ Current I used the version 5.4.275
 
 Build kernel : make ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- Image -j8
 
+Below method can work if the make command cannot find aarch64-none-linux-gnu-gcc.
+
+export ARCH=arm64
+export CROSS_COMPILE=aarch64-none-linux-gnu-
+make defconfig
+make all -j8
+
 2. Busybox to get a bundle of common apps
 
 Downloaded busybox codes from : https://busybox.net/downloads/
