@@ -36,7 +36,7 @@ Settings  --->
 
 3. Rootfs image creation
 
-qemu-img create rootfs.img 512m
+qemu-img create rootfs.img 4096m
 mkfs.ext4 rootfs.img
 
 
