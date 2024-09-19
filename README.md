@@ -24,6 +24,11 @@ export CROSS_COMPILE=aarch64-none-linux-gnu-
 make defconfig
 make all -j8
 
+NOTE: when execute make command, please add sudo mandatorily, or the building for arch=arm64 will proceed abnormally.
+executed the make with ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- added, or it may build for x86 and some confuse
+prompts like upgrade compile, balabala make you feeling amazing.
+
+
 2. Busybox to get a bundle of common apps
 
 Downloaded busybox codes from : https://busybox.net/downloads/
