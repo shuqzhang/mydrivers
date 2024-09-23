@@ -95,3 +95,5 @@ mkdir share
 mount -o loop share.img share
 
 
+7. How to commit codes to git hub
+git push origin main
