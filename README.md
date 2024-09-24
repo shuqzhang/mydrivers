@@ -24,9 +24,10 @@ export CROSS_COMPILE=aarch64-none-linux-gnu-
 make defconfig
 make all -j8
 
-NOTE: when execute make command, please add sudo mandatorily, or the building for arch=arm64 will proceed abnormally.
+NOTE: when execute make command, please add sudo mandatorily, or the building for ARCH=arm64 will proceed abnormally.
 executed the make with ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- added, or it may build for x86 and some confuse
 prompts like upgrade compile, balabala make you feeling amazing.
+First make defconfig and compile all. Then make menuconfig to select your configuration and compile all.
 
 
 2. Busybox to get a bundle of common apps
@@ -80,6 +81,8 @@ qemu-system-aarch64 \
     -hdb share.img \
     -cpu cortex-a53
 
+Note: the program hang when startup. Please check if the kernel is build successfully.
+Kill the program with command: ps -ef | grep qemu | awk  '{print $2}' | xargs kill -9
 
 5. For user mode programs, some libs is the dependencies. 
 5.1 Copy the libs from cross-compile development suites to rootfs.
@@ -96,4 +99,5 @@ mount -o loop share.img share
 
 
 7. How to commit codes to git hub
+git remote add origin git@github.com:shuqzhang/mydrivers.git
 git push origin main
