@@ -32,12 +32,17 @@ First make defconfig and compile all. Then make menuconfig to select your config
 
 2. Busybox to get a bundle of common apps
 
+pre-requisite: instatll libraries the software depends
+sudo apt-get install libncurses5-dev libncursesw5-dev 
+
 Downloaded busybox codes from : https://busybox.net/downloads/
 
 make menuconfig to set options
 Settings  ---> 
 [*] Build static binary (no shared libs)
 [*] Build with debug information  
+
+cross-compile-prefix need to be filled with "aarch64-none-linux-gnu-"
 
 
 3. Rootfs image creation
