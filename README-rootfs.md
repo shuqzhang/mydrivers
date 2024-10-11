@@ -43,4 +43,3 @@ ln /libc/lib/ld-linux-aarch64.so.1 ld-linux-aarch64.so.1
 5. To build lsblk executive, we need cross-compile util-linux codes. please refers the file README-cross-compile.md.
 
 
-

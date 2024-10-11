@@ -22,4 +22,23 @@ After that, i found ssh login procedure works.
 
 4.4 When i successfully login, there is always "PTY allocation request failed on channel 0" error. But it does not impact the session working. So just ignore it.
 
+4.5 (Update 2024-10-11) I upgraded the open-ssh to V_9_8, and there is some differece. With this version, the startup log include following printings.
+
+[    4.066235] random: crng init done
+/home/shuqzhan/armlinux/prefix/openssh/libexec/sshd-session does not exist or is not executable
+
+After i fixed the sshd-session issue, i logined in the ssh server again and got error below.
+
+ssh root@192.168.2.129
+root@192.168.2.129's password: 
+PTY allocation request failed on channel 0
+Could not chdir to home directory /root: No such file or directory
+
+So I created root dir in server, and reboot. The second login got the correct message:
+ssh root@192.168.2.129
+root@192.168.2.129's password: 
+PTY allocation request failed on channel 0
+
+So, the root cause of sshd login issue was found. 
+
 
