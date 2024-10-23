@@ -41,3 +41,22 @@ In file included from ./include/linux/compiler.h:249,
 
 Finally i used the command below, all building passed.
 sudo make ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu-
+
+
+3. cross-compile tmux
+ a) No rule for compile forkpty-linux.o, reason: no forkpty-linux.c. solution checkout the 3.4 verion codes to make again
+ b) Following compile issue:
+ /home/shuqzhan/armlinux/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-linux-gnu/bin/../lib/gcc/aarch64-none-linux-gnu/13.2.1/../../../../aarch64-none-linux-gnu/bin/ld: input.o: in function `input_reply_clipboard':
+input.c:(.text+0x3170): undefined reference to `b64_ntop'
+reason: b64_ntop function is not built, with readelf -a compat/base64.o | grep b64, got __b64_ntop, but not b64_ntop.
+solution: add #include "compat.h" in base64.c file. then remake.
+ c) Following compile issue:
+ compat/base64.c:134:1: error: conflicting types for ‘b64_ntop’; have ‘int(const u_char *, size_t,  char *, size_t)’ {aka ‘int(const unsigned char *, long unsigned int,  char *, long unsigned int)’}
+  134 | b64_ntop(u_char const *src,
+      | ^~~~~~~~
+In file included from compat/base64.c:58:
+./compat.h:378:18: note: previous declaration of ‘b64_ntop’ with type ‘int(const char *, size_t,  char *, size_t)’ {aka ‘int(const char *, long unsigned int,  char *, long unsigned int)’}
+  378 | int              b64_ntop(const char *, size_t, char *, size_t);
+
+reason: source file base64.c using u_char, which is not match with header file function using char.
+solution: change them into same type. 
