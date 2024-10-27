@@ -69,10 +69,10 @@ static ssize_t proc_read(struct file *file, char __user *buffer, size_t count, l
     return count;
 }
 
-static const struct file_operations scullmem_fops = {
-	.open  = proc_open,
-	.read  = proc_read,
-	.llseek = noop_llseek,
+static const struct proc_ops scullmem_ops = {
+	.proc_open  = proc_open,
+	.proc_read  = proc_read,
+	.proc_lseek = noop_llseek,
 };
 
 void * scull_seq_start(struct seq_file *m, loff_t *pos)
@@ -144,19 +144,18 @@ static int scull_proc_open(struct inode* inode, struct file* file)
     return seq_open(file, &scull_seq_ops);
 }
 
-static const struct file_operations scull_proc_ops = {
-    .owner = THIS_MODULE,
-    .open = scull_proc_open,
-    .read = seq_read,
-    .llseek = seq_lseek,
-    .release = seq_release
+static const struct proc_ops scull_proc_ops = {
+    .proc_open = scull_proc_open,
+    .proc_read = seq_read,
+    .proc_lseek = seq_lseek,
+    .proc_release = seq_release
 };
 
 void scull_create_proc(void)
 {
     struct proc_dir_entry *ent;
     ent = proc_create_data("scullmem", S_IRUGO|S_IWUSR, NULL,
-		&scullmem_fops, (void*)scull_devices); /* scull proc entry */
+		&scullmem_ops, (void*)scull_devices); /* scull proc entry */
 	if (!ent)
     {
         PDEBUG("Failed to create proc entry for scull.");
