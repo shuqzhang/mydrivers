@@ -4,7 +4,8 @@
 #	   short shortprint pci simple usb tty lddbus
 # 
 WORKSPACE:=armlinux
-KERNEL_CODE_DIR := $(HOME)/$(WORKSPACE)/linux-$(LINUX_KERNEL_VERSION)
+HOME=/home/$(shell users)
+KERNEL_CODE_DIR := $(HOME)/linux
 ifeq (${x86}, y)
 	WORKSPACE:=x86linux
 	ARCH=x86
@@ -14,8 +15,7 @@ endif
 
 SUBDIRS = hello globalmem scull misc_progs
 
-LINUX_KERNEL_VERSION=5.4.284
-HOME=/home/$(shell users)
+LINUX_KERNEL_VERSION=5.15.0
 PROJ_DIR=$(HOME)/mydrivers
 CC=$(CROSS_COMPILE)gcc
 
