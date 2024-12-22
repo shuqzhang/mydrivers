@@ -25,11 +25,8 @@ alias sq='cd ~/armlinux;sudo ./qemuarm_tap'
 alias x86='export ARCH=x86;export CROSS_COMPILE='
 
 5. Compiling linux kernel v5.15, the packages depended are below.
-sudo apt install flex
-sudo apt install bison
-sudo apt install openssl
-sudo apt install libssl-dev
-sudo apt-get install libelf-dev
+sudo apt install flex bison openssl libssl-dev libelf-dev libncurses-dev 
+
 
 
 
