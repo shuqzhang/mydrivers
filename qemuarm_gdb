@@ -1,0 +1,13 @@
+#!/bin/bash
+
+qemu-system-aarch64 \
+    -machine virt,virtualization=true,gic-version=3 \
+    -nographic \
+    -m size=1024M \
+    -cpu cortex-a72 \
+    -kernel Image \
+    -drive format=raw,file=rootfs.img \
+    -append "root=/dev/vda rw kgdboc=ttyAMA0,115200 rdinit=/linuxrc" \
+    -hdb /home/shuqzhan/armlinux/share.img \
+    -smp 2 \
+    -S -s
