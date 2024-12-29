@@ -277,6 +277,7 @@ static int __init scull_init(void)
     PDEBUG("scull_devices %px", scull_devices);
 
 #ifdef SCULL_DEBUG /* only when debugging */
+    PDEBUG("SCULL_DEBUG used");
 	scull_create_proc();
 #endif
 

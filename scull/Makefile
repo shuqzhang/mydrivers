@@ -4,7 +4,7 @@ PWD := $(shell pwd)
 DEBUG := y
 DBGFLAGS :=
 ifeq (${DEBUG}, y)
-	DBGFLAGS := -O -g -DSCULL_DEBUG # "-O" is need to expand to inlines ? 
+	DBGFLAGS := -O0 -g -DSCULL_DEBUG # "-O" is need to expand to inlines ? 
 else
 	DBGFLAGS := -O2
 endif
@@ -31,6 +31,7 @@ endif
 modules:
 #	@echo "$(KERNEL_CODE_DIR)"
 #	@echo "$(PROJ_DIR)"
+	@echo "$(EXTRA_CFLAGS)"
 	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
 
 modules_install:
