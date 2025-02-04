@@ -1,5 +1,6 @@
 #include "scull.h"
 #include <linux/kdev_t.h>
+#include <asm/uaccess.h>
 
 struct scull_dev* scull_devices;
 int scull_nr_devs = 4;
@@ -204,12 +205,38 @@ out:
     return retval;
 }
 
+static long scull_ioctl(struct file* filp, unsigned int cmd, unsigned long arg)
+{
+    int err = 0, tmp;
+    int retval = 0;
+
+    if (_IOC_TYPE(cmd) != SCULL_IOC_MAGIC) return -ENOTTY;
+    if (_IOC_NR(cmd) > SCULL_IOC_MAXNR) return -ENOTTY;
+
+    // verify address
+    // if (_IOC_DIR(cmd) & _IOC_READ)
+    // {
+    //     err = !access_ok(VERIFY_WRITE, (void __user*)arg, _IOC_SIZE(cmd));
+    // }
+    // if (_IOC_DIR(cmd) & _IOC_WRITE)
+    // {
+    //     err = !access_ok(VERIFY_READ, (void __user*)arg, _IOC_SIZE(cmd));
+    // }
+    err = !access_ok((void __user*)arg, _IOC_SIZE(cmd));
+    if (err)
+    {
+        return -EFAULT;
+    }
+
+    return retval;
+}
+
 static const struct file_operations scull_fops = {
     .owner = THIS_MODULE,
     .llseek = NULL, // globalmem_llseek,
     .read = scull_read,
     .write = scull_write,
-    .unlocked_ioctl = NULL, // globalmem_ioctl,
+    .unlocked_ioctl = scull_ioctl,
     .open = scull_open,
     .release = scull_release,
 };
