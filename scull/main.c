@@ -1,11 +1,14 @@
 #include "scull.h"
 #include <linux/kdev_t.h>
+#include <linux/capability.h>
 #include <asm/uaccess.h>
 
 struct scull_dev* scull_devices;
 int scull_nr_devs = 4;
 int scull_major = 0;
 int scull_minor = 0;
+int scull_quantum = QUANTUM_SIZE;
+int scull_qset_n = QSET_SIZE;
 
 static void scull_trim(struct scull_dev* dev)
 {
@@ -33,8 +36,8 @@ static void scull_trim(struct scull_dev* dev)
     }
     dev->size = 0;
     dev->data = NULL;
-    dev->qset = QSET_SIZE;
-    dev->quantum = QUANTUM_SIZE;
+    dev->qset = scull_qset_n;
+    dev->quantum = scull_quantum;
 }
 
 static int scull_open(struct inode* inode, struct file* filp)
@@ -227,6 +230,76 @@ static long scull_ioctl(struct file* filp, unsigned int cmd, unsigned long arg)
     {
         return -EFAULT;
     }
+    switch (cmd)
+    {
+        case SCULL_IOCRESET:
+            scull_quantum = QUANTUM_SIZE;
+            scull_qset_n = QSET_SIZE;
+            break;
+        ///////////////////////// below for quantum ////////////////////////////
+        case SCULL_IOCSQUANTUM: // set
+            if (!capable(CAP_SYS_ADMIN))
+                return -EPERM;
+            retval = __get_user(scull_quantum, (int __user *)arg);
+            break;
+        case SCULL_IOCTQUANTUM: // tell
+            if (!capable(CAP_SYS_ADMIN))
+                return -EPERM;
+            scull_quantum = arg;
+            break;
+        case SCULL_IOCGQUANTUM: // get
+            retval = __put_user(scull_quantum, (int __user *)arg);
+            break;
+        case SCULL_IOCQQUANTUM: // query
+            return scull_quantum;
+        case SCULL_IOCXQUANTUM: // eXchange
+            tmp = scull_quantum;
+            if (!capable(CAP_SYS_ADMIN))
+                return -EPERM;
+            retval = __get_user(scull_quantum, (int __user *)arg);
+            if (retval == 0)
+                retval = __put_user(scull_quantum, (int __user *)arg);
+            break;
+        case SCULL_IOCHQUANTUM: // sHift
+            tmp = scull_quantum;
+            if (!capable(CAP_SYS_ADMIN))
+                return -EPERM;
+            scull_quantum = arg;
+            return tmp;
+        ///////////////////////// below for qset ////////////////////////////
+        case SCULL_IOCSQSET: // set
+            if (!capable(CAP_SYS_ADMIN))
+                return -EPERM;
+            retval = __get_user(scull_qset_n, (int __user *)arg);
+            break;
+        case SCULL_IOCTQSET: // tell
+            if (!capable(CAP_SYS_ADMIN))
+                return -EPERM;
+            scull_qset_n = arg;
+            break;
+        case SCULL_IOCGQSET: // get
+            retval = __put_user(scull_qset_n, (int __user *)arg);
+            break;
+        case SCULL_IOCQQSET: // query
+            return scull_qset_n;
+        case SCULL_IOCXQSET: // eXchange
+            tmp = scull_qset_n;
+            if (!capable(CAP_SYS_ADMIN))
+                return -EPERM;
+            retval = __get_user(scull_qset_n, (int __user *)arg);
+            if (retval == 0)
+                retval = __put_user(scull_qset_n, (int __user *)arg);
+            break;
+        case SCULL_IOCHQSET: // sHift
+            tmp = scull_qset_n;
+            if (!capable(CAP_SYS_ADMIN))
+                return -EPERM;
+            scull_qset_n = arg;
+            return tmp;        
+        default:
+            return -ENOTTY;
+
+    }
 
     return retval;
 }
@@ -292,8 +365,8 @@ static int __init scull_init(void)
     memset(scull_devices, 0, sizeof(struct scull_dev) * scull_nr_devs);
     for (i = 0; i < scull_nr_devs; i++)
     {
-        scull_devices[i].qset = QSET_SIZE;
-        scull_devices[i].quantum = QUANTUM_SIZE;
+        scull_devices[i].qset = scull_qset_n;
+        scull_devices[i].quantum = scull_quantum;
         scull_devices[i].data = NULL;
         sema_init(&scull_devices[i].sem, 1);
         if (!scull_setup_cdev(&scull_devices[i], i))

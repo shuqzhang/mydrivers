@@ -46,6 +46,8 @@ extern struct scull_dev* scull_devices;
 extern int scull_nr_devs;
 extern int scull_major;
 extern int scull_minor;
+extern int scull_quantum;
+extern int scull_qset_n;
 
 void scull_create_proc(void);
 void scull_remove_proc(void);
