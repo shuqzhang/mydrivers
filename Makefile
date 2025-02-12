@@ -13,7 +13,7 @@ ifeq (${x86}, y)
 	KERNEL_CODE_DIR := /usr/src/linux-headers-5.15.0-124-generic
 endif
 
-SUBDIRS = hello globalmem scull misc_progs completion
+SUBDIRS = hello globalmem scull misc_progs completion misc_modules
 
 LINUX_KERNEL_VERSION=5.15.0
 PROJ_DIR=$(HOME)/mydrivers
