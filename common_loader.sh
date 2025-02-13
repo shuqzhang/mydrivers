@@ -16,7 +16,7 @@ rm -f /dev/${device}?
 # invoke insmod with all arguments we got
 # and use a pathname, as newer modutils don't look in . by default
 # /sbin/insmod -f ./$module.ko $* || exit 1  // invalid module format error
-/sbin/insmod ./$module.ko $* || exit 1
+/sbin/insmod $2/$module.ko || exit 1
 
 major=`cat /proc/devices | awk "\\$2==\"$module\" {print \\$1}"`
 

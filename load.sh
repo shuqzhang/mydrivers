@@ -1,5 +1,5 @@
 #/bin/bash
 
 (cd scull && ./scull_load.sh)
-common_loader.sh completion
-common_loader.sh sleepy
+./common_loader.sh completion completion
+./common_loader.sh sleepy misc_modules

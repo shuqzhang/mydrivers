@@ -1,5 +1,5 @@
 #/bin/bash
 
 (cd scull && ./scull_unload.sh)
-common_loader.sh completion
-common_loader.sh sleepy
+./common_unloader.sh completion
+./common_unloader.sh sleepy
