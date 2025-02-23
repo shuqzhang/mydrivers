@@ -59,6 +59,16 @@ void scull_remove_proc(void);
 #define QUANTUM_SIZE 1024
 #endif
 
+#ifndef SCULL_P_NR_DEVS
+#define SCULL_P_NR_DEVS 4  /* scullpipe0 through scullpipe3 */
+#endif
+/*
+ * The pipe device is a simple circular buffer. Here its default size
+ */
+#ifndef SCULL_P_BUFFER
+#define SCULL_P_BUFFER 4000
+#endif
+
 /*
  * Ioctl definitions 
  */
