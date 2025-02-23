@@ -1,4 +1,4 @@
-FILES = setlevel hello setconsole
+FILES = setlevel hello setconsole nbtest
 
 KERNELDIR ?= $(KERNEL_CODE_DIR)
 INCLUDEDIR = $(KERNELDIR)/include
