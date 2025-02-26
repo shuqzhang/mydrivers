@@ -70,6 +70,13 @@ void scull_remove_proc(void);
 #endif
 
 /*
+ * Prototypes for shared functions
+ */
+
+int scull_p_init(void);
+void scull_p_cleanup(void);
+
+/*
  * Ioctl definitions 
  */
 

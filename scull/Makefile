@@ -13,7 +13,7 @@ EXTRA_CFLAGS += ${DBGFLAGS} -I$(PROJ_DIR)
 ifneq ($(KERNELRELEASE),)
 # call from kernel build system
 
-scull-objs := main.o proc.o
+scull-objs := main.o proc.o pipe.o
 # Kernel modules
 obj-m += scull.o
 

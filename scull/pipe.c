@@ -36,14 +36,126 @@ static struct scull_pipe *scull_p_devices;
 
 static int spacefree(struct scull_pipe *dev);
 
+static ssize_t scull_p_read(struct file* filp, char __user *buff, size_t count, loff_t* f_pos)
+{
+    struct scull_pipe* dev = (struct scull_pipe*)filp->private_data;
+
+    if (!down_interruptible(&dev->sem))
+    {
+        return -ERESTARTSYS;
+    }
+    // NON_BLOCK
+    while (dev->rp == dev->wp)
+    {
+        up(&dev->sem);
+        //if (filp-> == NON_BLOCK)
+        if (wait_event_interruptible(dev->inq, dev->rp != dev->wp))
+        {
+            return -ERESTARTSYS;
+        }
+        if (!down_interruptible(&dev->sem))
+        {
+            return -ERESTARTSYS;
+        }
+    }
+    if (dev->rp < dev->wp)
+    {
+        count = (count > dev->wp - dev->rp) ? (dev->wp - dev->rp) : count;
+    }
+    else
+    {
+        count = (count > dev->end - dev->rp) ? (dev->end - dev->rp) : count;
+    }
+    if (copy_to_user(buff, dev->rp, count))
+    {
+        up(&dev->sem);
+        return -EFAULT;
+    }
+    if (dev->rp + count == dev->end)
+    {
+        dev->rp = dev->buffer;
+    }
+    else
+    {
+        dev->rp += count;
+    }
+
+    up(&dev->sem);
+    printk(KERN_INFO "%s did read %ld bytes...", current->comm, (long)count);
+    wake_up_interruptible(&dev->outq);
+    return count;
+}
+
+static ssize_t scull_p_write(struct file* filp, const char __user *buff, size_t count, loff_t* f_pos)
+{
+    return 0;
+}
+
+static int scull_p_open(struct inode* inode, struct file* filp)
+{
+    struct scull_pipe* dev = container_of(inode->i_cdev, struct scull_pipe, cdev);
+    filp->private_data = dev;
+    if (!down_interruptible(&dev->sem))
+    {
+        return -ERESTARTSYS;
+    }
+    if (!dev->buffer)
+    {
+        dev->buffer = kmalloc(scull_p_buffer, GFP_KERNEL);
+        if (dev->buffer)
+        {
+            printk(KERN_WARNING "alloc buffer failed");
+            up(&dev->sem);
+            return -ENOMEM;
+        }
+        dev->end = dev->buffer + scull_p_buffer;
+        dev->rp = dev->wp = dev->buffer;
+    }
+    if (filp->f_mode & FMODE_READ)
+    {
+        dev->nreaders++;
+    }
+    if (filp->f_mode & FMODE_WRITE)
+    {
+        dev->nwriters++;
+    }
+    up(&dev->sem);
+    return nonseekable_open(inode, filp);
+}
+
+static int scull_p_release(struct inode* inode, struct file* filp)
+{
+    struct scull_pipe* dev = (struct scull_pipe*)filp->private_data;
+    if (!down_interruptible(&dev->sem))
+    {
+        return -ERESTARTSYS;
+    }
+    if (filp->f_mode & FMODE_READ)
+    {
+        dev->nreaders--;
+    }
+    if (filp->f_mode & FMODE_WRITE)
+    {
+        dev->nwriters--;
+    }
+    if (dev->nreaders + dev->nwriters == 0)
+    {
+        kfree(dev->buffer);
+        dev->buffer = NULL;
+    }
+    up(&dev->sem);
+
+    return 0;
+}
+
 static const struct file_operations scull_p_fops = {
     .owner = THIS_MODULE,
     .llseek = NULL,
-    .read = NULL, // TODO
-    .write = NULL, // TODO
+    .read = scull_p_read, // TODO
+    .write = scull_p_write, // TODO
     .unlocked_ioctl = NULL,
-    .open = NULL, // TODO
-    .release = NULL, //TODO
+    .open = scull_p_open,// TODO
+    .release = scull_p_release, //TODO
 };
 
 
@@ -64,7 +176,7 @@ static bool scull_p_setup_cdev(struct scull_pipe* dev, int index)
     return true;
 }
 
-static int scull_p_init(void)
+int scull_p_init(void)
 {
     int res = 0, i = 0;
     dev_t dev;
@@ -75,7 +187,7 @@ static int scull_p_init(void)
         printk(KERN_WARNING "scull_p: cannot get major dev no for this device");
         goto fail_region;
     }
-
+    scull_p_devno = dev;
     /* 
 	 * allocate the devices -- we can't have them static, as the number
 	 * can be specified at load time
@@ -91,6 +203,8 @@ static int scull_p_init(void)
         scull_p_devices[i].buffersize = scull_p_buffer;
         scull_p_devices[i].buffer = NULL; // TODO
         scull_p_devices[i].end = NULL; // TODO
+        init_waitqueue_head(&(scull_p_devices[i].inq));
+        init_waitqueue_head(&(scull_p_devices[i].outq));
         sema_init(&scull_p_devices[i].sem, 1);
         if (!scull_p_setup_cdev(&scull_p_devices[i], i))
         {
@@ -107,7 +221,7 @@ fail_region:
     return res;
 }
 
-static void scull_p_cleanup(void)
+void scull_p_cleanup(void)
 {
     int i;
 
@@ -115,7 +229,12 @@ static void scull_p_cleanup(void)
     {
         struct scull_pipe* dev = &scull_p_devices[i];
         cdev_del(&(dev->cdev));
+        if (dev->buffer)
+        {
+            kfree(dev->buffer);
+        }
     }
-    unregister_chrdev_region(, scull_p_nr_devs);
+    unregister_chrdev_region(scull_p_devno, scull_p_nr_devs);
     kfree(scull_p_devices);
+    scull_p_devices = NULL;
 }
