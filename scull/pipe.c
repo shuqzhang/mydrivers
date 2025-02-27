@@ -34,7 +34,14 @@ dev_t scull_p_devno;			/* Our first device number */
 
 static struct scull_pipe *scull_p_devices;
 
-static int spacefree(struct scull_pipe *dev);
+static int spacefree(struct scull_pipe *dev)
+{
+    if (dev->wp == dev->rp)
+    {
+        return dev->buffersize - 1;
+    }
+    return (dev->rp + dev->buffersize - dev->wp) % dev->buffersize - 1;
+}
 
 static ssize_t scull_p_read(struct file* filp, char __user *buff, size_t count, loff_t* f_pos)
 {
@@ -88,7 +95,42 @@ static ssize_t scull_p_read(struct file* filp, char __user *buff, size_t count, 
 
 static ssize_t scull_p_write(struct file* filp, const char __user *buff, size_t count, loff_t* f_pos)
 {
-    return 0;
+    int ret = 0, free_space_size = 0;
+    struct scull_pipe* dev = (struct scull_pipe*)filp->private_data;
+
+    if (!down_interruptible(&dev->sem))
+    {
+        return -ERESTARTSYS;
+    }
+    ret = scull_getwritespace(dev, filp);
+    if (!ret)
+    {
+        return ret;
+    }
+    free_space_size = spacefree(dev);
+    if (dev->rp > dev->wp)
+    {
+        count = (count > dev->rp - dev->wp) ? (dev->rp - dev->wp) : count;
+    }
+    else
+    {
+        count = (count > dev->end - dev->wp) ? (dev->end - dev->wp) : count;
+    }
+    if (copy_from_user(dev->wp, buff, count))
+    {
+        up(&dev->sem);
+        return -EFAULT;
+    }
+    dev->wp += count;
+    if (dev->wp == dev->end)
+    {
+        dev->wp = dev->buffer;
+    }
+
+    up(&dev->sem);
+    printk(KERN_INFO "%s did write %ld bytes...", current->comm, (long)count);
+    wake_up_interruptible(&dev->inq);
+    return count;
 }
 
 static int scull_p_open(struct inode* inode, struct file* filp)
