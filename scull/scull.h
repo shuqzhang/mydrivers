@@ -66,7 +66,7 @@ void scull_remove_proc(void);
  * The pipe device is a simple circular buffer. Here its default size
  */
 #ifndef SCULL_P_BUFFER
-#define SCULL_P_BUFFER 4000
+#define SCULL_P_BUFFER 1000
 #endif
 
 /*

@@ -47,10 +47,11 @@ static ssize_t scull_p_read(struct file* filp, char __user *buff, size_t count, 
 {
     struct scull_pipe* dev = (struct scull_pipe*)filp->private_data;
 
-    if (!down_interruptible(&dev->sem))
+    if (down_interruptible(&dev->sem))
     {
         return -ERESTARTSYS;
     }
+    PDEBUG("read data... count %ld", count);
     // NON_BLOCK
     while (dev->rp == dev->wp)
     {
@@ -60,7 +61,7 @@ static ssize_t scull_p_read(struct file* filp, char __user *buff, size_t count, 
         {
             return -ERESTARTSYS;
         }
-        if (!down_interruptible(&dev->sem))
+        if (down_interruptible(&dev->sem))
         {
             return -ERESTARTSYS;
         }
@@ -106,7 +107,7 @@ static int scull_getwritespace(struct scull_pipe *dev, struct file* filp)
             schedule();
         }
         finish_wait(&dev->outq, &wait);
-        if (!down_interruptible(&dev->sem))
+        if (down_interruptible(&dev->sem))
         {
             return -ERESTARTSYS;
         }
@@ -119,10 +120,11 @@ static ssize_t scull_p_write(struct file* filp, const char __user *buff, size_t 
     int ret = 0, free_space_size = 0;
     struct scull_pipe* dev = (struct scull_pipe*)filp->private_data;
 
-    if (!down_interruptible(&dev->sem))
+    if (down_interruptible(&dev->sem))
     {
         return -ERESTARTSYS;
     }
+    PDEBUG("write data... count %ld", count);
     ret = scull_getwritespace(dev, filp);
     if (ret)
     {
@@ -137,6 +139,7 @@ static ssize_t scull_p_write(struct file* filp, const char __user *buff, size_t 
     {
         count = (count > dev->end - dev->wp) ? (dev->end - dev->wp) : count;
     }
+    count = (count > free_space_size) ? free_space_size : count;
     if (copy_from_user(dev->wp, buff, count))
     {
         up(&dev->sem);
@@ -158,14 +161,16 @@ static int scull_p_open(struct inode* inode, struct file* filp)
 {
     struct scull_pipe* dev = container_of(inode->i_cdev, struct scull_pipe, cdev);
     filp->private_data = dev;
-    if (!down_interruptible(&dev->sem))
+    PDEBUG("open device...");
+    if (down_interruptible(&dev->sem))
     {
         return -ERESTARTSYS;
     }
+    PDEBUG("open device...");
     if (!dev->buffer)
     {
         dev->buffer = kmalloc(scull_p_buffer, GFP_KERNEL);
-        if (dev->buffer)
+        if (!dev->buffer)
         {
             printk(KERN_WARNING "alloc buffer failed");
             up(&dev->sem);
@@ -189,10 +194,11 @@ static int scull_p_open(struct inode* inode, struct file* filp)
 static int scull_p_release(struct inode* inode, struct file* filp)
 {
     struct scull_pipe* dev = (struct scull_pipe*)filp->private_data;
-    if (!down_interruptible(&dev->sem))
+    if (down_interruptible(&dev->sem))
     {
         return -ERESTARTSYS;
     }
+    PDEBUG("close device...");
     if (filp->f_mode & FMODE_READ)
     {
         dev->nreaders--;
@@ -214,11 +220,11 @@ static int scull_p_release(struct inode* inode, struct file* filp)
 static const struct file_operations scull_p_fops = {
     .owner = THIS_MODULE,
     .llseek = NULL,
-    .read = scull_p_read, // TODO
-    .write = scull_p_write, // TODO
+    .read = scull_p_read,
+    .write = scull_p_write,
     .unlocked_ioctl = NULL,
-    .open = scull_p_open,// TODO
-    .release = scull_p_release, //TODO
+    .open = scull_p_open,
+    .release = scull_p_release,
 };
 
 
