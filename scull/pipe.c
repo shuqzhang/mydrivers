@@ -93,19 +93,19 @@ static ssize_t scull_p_read(struct file* filp, char __user *buff, size_t count, 
     return count;
 }
 
-static int scull_getwritespace(const struct scull_pipe *dev, struct file* filp)
+static int scull_getwritespace(struct scull_pipe *dev, struct file* filp)
 {
+    DEFINE_WAIT(wait);
     while (!spacefree(dev))
     {
         up(&dev->sem);
-        DEFINE_WAIT(wait);
         PDEBUG("\"%s\" writing: is going to sleep...", current->comm);
         prepare_to_wait(&dev->outq, &wait, TASK_INTERRUPTIBLE);
         if (!spacefree(dev))
         {
             schedule();
         }
-        wait_finish(&dev->outq, &wait);
+        finish_wait(&dev->outq, &wait);
         if (!down_interruptible(&dev->sem))
         {
             return -ERESTARTSYS;
