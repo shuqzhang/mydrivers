@@ -115,6 +115,12 @@ static int scull_getwritespace(struct scull_pipe *dev, struct file* filp)
             schedule();
         }
         finish_wait(&dev->outq, &wait);
+        // If the process is waken up by signal(i.e. a external kill command), this handler helps correctly
+        // terminate the process. Otherwise, the loop executed infinitely.
+        if (signal_pending(current))
+        {
+            return -ERESTARTSYS;
+        }
         if (down_interruptible(&dev->sem))
         {
             return -ERESTARTSYS;
