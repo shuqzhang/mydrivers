@@ -171,6 +171,30 @@ static ssize_t scull_p_write(struct file* filp, const char __user *buff, size_t 
     return count;
 }
 
+static unsigned int scull_p_poll(struct file* filp, poll_table* wait)
+{
+    struct scull_pipe* dev = (struct scull_pipe*)filp->private_data;
+    unsigned int mask = 0;
+
+    if (!down_interruptible(&dev->sem))
+    {
+        return mask;
+    }
+    poll_wait(filp, &dev->inq, wait);
+    poll_wait(filp, &dev->outq, wait);
+
+    if (spacefree(dev) != 0)
+    {
+        mask |= (POLLOUT | POLLWRNORM);
+    }
+    if (dev->rp != dev->wp)
+    {
+        mask |= (POLLIN | POLLRDNORM);
+    }
+    up(&dev->sem);
+    return mask;
+}
+
 static int scull_p_open(struct inode* inode, struct file* filp)
 {
     struct scull_pipe* dev = container_of(inode->i_cdev, struct scull_pipe, cdev);
@@ -237,7 +261,7 @@ static const struct file_operations scull_p_fops = {
     .read = scull_p_read,
     .write = scull_p_write,
     .unlocked_ioctl = scull_ioctl,
-    .unlocked_ioctl = NULL,
+    .poll = scull_p_poll,
     .open = scull_p_open,
     .release = scull_p_release,
 };
