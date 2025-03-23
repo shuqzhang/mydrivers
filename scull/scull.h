@@ -76,6 +76,14 @@ void scull_remove_proc(void);
 int scull_p_init(void);
 void scull_p_cleanup(void);
 
+long scull_ioctl(struct file* filp, unsigned int cmd, unsigned long arg);
+
+ssize_t scull_write(struct file* filp, const char __user *buff, size_t count, loff_t* f_pos);
+
+ssize_t scull_read(struct file* filp, char __user *buff, size_t count, loff_t* f_pos);
+
+void scull_trim(struct scull_dev* dev);
+
 /*
  * Ioctl definitions 
  */

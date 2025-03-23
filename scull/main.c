@@ -10,7 +10,7 @@ int scull_minor = 0;
 int scull_quantum = QUANTUM_SIZE;
 int scull_qset_n = QSET_SIZE;
 
-static void scull_trim(struct scull_dev* dev)
+void scull_trim(struct scull_dev* dev)
 {
     struct scull_qset *dptr, *next;
     int i;
@@ -96,7 +96,7 @@ struct scull_qset* scull_follow(struct scull_qset** head, int item)
     return prev;
 }
 
-static ssize_t scull_read(struct file* filp, char __user *buff, size_t count, loff_t* f_pos)
+ssize_t scull_read(struct file* filp, char __user *buff, size_t count, loff_t* f_pos)
 {
     struct scull_dev* dev = filp->private_data;
     struct scull_qset* dptr = NULL;
@@ -145,7 +145,7 @@ out:
     return retval;
 }
 
-static ssize_t scull_write(struct file* filp, const char __user *buff, size_t count, loff_t* f_pos)
+ssize_t scull_write(struct file* filp, const char __user *buff, size_t count, loff_t* f_pos)
 {
     ssize_t retval = -ENOMEM;
     struct scull_dev* dev = (struct scull_dev*)filp->private_data;
@@ -208,7 +208,7 @@ out:
     return retval;
 }
 
-static long scull_ioctl(struct file* filp, unsigned int cmd, unsigned long arg)
+long scull_ioctl(struct file* filp, unsigned int cmd, unsigned long arg)
 {
     int err = 0, tmp;
     int retval = 0;

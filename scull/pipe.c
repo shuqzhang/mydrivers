@@ -236,6 +236,7 @@ static const struct file_operations scull_p_fops = {
     .llseek = NULL,
     .read = scull_p_read,
     .write = scull_p_write,
+    .unlocked_ioctl = scull_ioctl,
     .unlocked_ioctl = NULL,
     .open = scull_p_open,
     .release = scull_p_release,
