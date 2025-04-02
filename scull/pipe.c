@@ -168,6 +168,10 @@ static ssize_t scull_p_write(struct file* filp, const char __user *buff, size_t 
     up(&dev->sem);
     printk(KERN_INFO "%s did write %ld bytes...", current->comm, (long)count);
     wake_up_interruptible(&dev->inq);
+    if (dev->async_queue)
+    {
+        kill_fasync(&dev->async_queue, SIGIO, POLLIN);
+    }
     return count;
 }
 
@@ -193,6 +197,12 @@ static unsigned int scull_p_poll(struct file* filp, poll_table* wait)
     }
     up(&dev->sem);
     return mask;
+}
+
+static int scull_p_fasync(int fd, struct file* filp, int mode)
+{
+    struct scull_pipe* dev = (struct scull_pipe*)filp->private_data;
+    return fasync_helper(fd, filp, mode, &dev->async_queue);
 }
 
 static int scull_p_open(struct inode* inode, struct file* filp)
@@ -232,6 +242,7 @@ static int scull_p_open(struct inode* inode, struct file* filp)
 static int scull_p_release(struct inode* inode, struct file* filp)
 {
     struct scull_pipe* dev = (struct scull_pipe*)filp->private_data;
+    scull_p_fasync(-1, filp, 0);
     if (down_interruptible(&dev->sem))
     {
         return -ERESTARTSYS;
@@ -262,6 +273,7 @@ static const struct file_operations scull_p_fops = {
     .write = scull_p_write,
     .unlocked_ioctl = scull_ioctl,
     .poll = scull_p_poll,
+    .fasync =	scull_p_fasync,
     .open = scull_p_open,
     .release = scull_p_release,
 };

@@ -25,23 +25,25 @@ int main(int argc, char *argv[])
     int count = 0;
     struct sigaction action;
 
+    int fd = open("/dev/scull_p", O_RDWR);
+
     memset(&action, 0, sizeof(struct sigaction));
     action.sa_handler = input_handler;
     action.sa_flags = 0;
 
     sigaction(SIGIO, &action, NULL);
-    fcntl(STDIN_FILENO, F_SETOWN, getpid());
-    oflags = fcntl(STDIN_FILENO, F_GETFL);
-    fcntl(STDIN_FILENO, F_SETFL, oflags | FASYNC);
+    fcntl(fd, F_SETOWN, getpid());
+    oflags = fcntl(fd, F_GETFL);
+    fcntl(fd, F_SETFL, oflags | FASYNC);
 
     while (1)
     {
-        sleep(3600);
+        sleep(100);
         if (!gotdata)
         {
             continue;
         }
-        count = read(1, buffer, 4096);
+        count = read(fd, buffer, 4096);
         write(0, buffer, count);
         gotdata = 0;
     }
