@@ -268,7 +268,7 @@ static int scull_p_release(struct inode* inode, struct file* filp)
 
 static const struct file_operations scull_p_fops = {
     .owner = THIS_MODULE,
-    .llseek = NULL,
+    .llseek = no_llseek,
     .read = scull_p_read,
     .write = scull_p_write,
     .unlocked_ioctl = scull_ioctl,
