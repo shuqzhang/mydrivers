@@ -1,5 +1,6 @@
 #include "scull.h"
 #include <linux/kdev_t.h>
+#include <linux/fs.h>
 #include <linux/capability.h>
 #include <asm/uaccess.h>
 
@@ -306,7 +307,7 @@ long scull_ioctl(struct file* filp, unsigned int cmd, unsigned long arg)
 
 static const struct file_operations scull_fops = {
     .owner = THIS_MODULE,
-    .llseek = NULL, // globalmem_llseek,
+    .llseek = no_llseek,
     .read = scull_read,
     .write = scull_write,
     .unlocked_ioctl = scull_ioctl,
