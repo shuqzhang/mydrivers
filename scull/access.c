@@ -30,14 +30,14 @@ static int scull_s_release(struct inode* inode, struct file* filp)
 }
 
 
-static const struct file_operations scull_s_fops = {
+static struct file_operations scull_s_fops = {
     .owner = THIS_MODULE,
     .llseek = no_llseek,
     .read = scull_read,
     .write = scull_write,
     .unlocked_ioctl = scull_ioctl,
     .open = scull_s_open,
-    .release = scull_s_elease,
+    .release = scull_s_release,
 };
 
 static struct scull_adev_info
@@ -55,7 +55,7 @@ static bool scull_access_setup_cdev(struct scull_adev_info* dev_info, dev_t devn
     struct scull_dev* dev = dev_info->adev;
     char buffer[10];
     PDEBUG("devno %s adding for %s ...", format_dev_t(buffer, devno), dev_info->name);
-    cdev_init(&dev->cdev, &scull_fops);
+    cdev_init(&dev->cdev, dev_info->scull_a_fops);
     dev->cdev.owner = THIS_MODULE;
     dev->cdev.ops = dev_info->scull_a_fops;
     res = cdev_add(&(dev->cdev), devno, 1);
@@ -94,9 +94,7 @@ fail_region:
     return res;
 }
 
-module_init(scull_access_init);
-
-void __exit scull_access_exit(void)
+void __exit scull_access_cleanup(void)
 {
     int i;
     PDEBUG("good bye, access control");
@@ -108,8 +106,6 @@ void __exit scull_access_exit(void)
     }
     unregister_chrdev_region(scull_access_devno, scull_access_nr_devs);
 }
-
-module_exit(scull_access_exit);
 
 MODULE_AUTHOR("shuqzhan <linuxshuqzhan@outlook.com>");
 MODULE_LICENSE("GPL v2");

@@ -382,6 +382,7 @@ static int __init scull_init(void)
 	scull_create_proc();
 #endif
     scull_p_init();
+    scull_access_init();
 
     return 0;
 fail_cdev:
@@ -411,6 +412,7 @@ static void __exit scull_exit(void)
     //scull_devices[0].size = 0;
     kfree(scull_devices);
     scull_p_cleanup();
+    scull_access_cleanup();
 }
 
 module_exit(scull_exit);
