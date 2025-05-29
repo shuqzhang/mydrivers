@@ -20,7 +20,7 @@ struct scull_pipe {
     int buffersize;
     char* rp, *wp;
     int nreaders, nwriters;
-    struct fasync_struct* async_queue;
+    struct fasync_struct* async_queue; // owner is this device
     struct semaphore sem;
     struct cdev cdev;
 };
@@ -170,7 +170,7 @@ static ssize_t scull_p_write(struct file* filp, const char __user *buff, size_t 
     wake_up_interruptible(&dev->inq);
     if (dev->async_queue)
     {
-        kill_fasync(&dev->async_queue, SIGIO, POLLIN);
+        kill_fasync(&dev->async_queue, SIGIO, POLLIN); // notify owner process of all files, asynchronize mode
     }
     return count;
 }
