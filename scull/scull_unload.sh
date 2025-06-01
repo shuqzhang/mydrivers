@@ -1,11 +1,6 @@
 #!/bin/sh
-module="scull"
-device="scull"
 
-# invoke rmmod with all arguments we got
-/sbin/rmmod $module $* || exit 1
-
-# remove nodes
-rm -f /dev/${device}[0-3] /dev/${device}
-
-exit 0
+chmod +x scull_unload_multi.sh
+./scull_unload_multi.sh scull scull 4
+./scull_unload_multi.sh scull scull_p 4
+./scull_unload_multi.sh scull scull_single 1
