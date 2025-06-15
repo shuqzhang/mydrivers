@@ -1,5 +1,7 @@
 #include "scull.h"
 #include <asm/uaccess.h>
+#include <asm/alternative.h>
+#include <asm/atomic.h>
 #include <linux/fs.h>
 
 static int scull_access_nr_devs = SCULL_ACCESS_NR_DEVS;
@@ -7,10 +9,16 @@ dev_t scull_access_devno;			/* Our first device number */
 
 /*First device*/
 static struct scull_dev scull_s_dev;
+static atomic_t scull_s_available = ATOMIC_INIT(1);
 static int scull_s_open(struct inode* inode, struct file* filp)
 {
     int ret = 0;
     struct scull_dev* dev = container_of(inode->i_cdev, struct scull_dev, cdev);
+    if (!atomic_dec_and_test(&scull_s_available))
+    {
+        atomic_inc(&scull_s_available);
+        return -EBUSY;
+    }
     PDEBUG("hello, open single access");
     filp->private_data = dev;
     if ((filp->f_flags & O_ACCMODE) == O_WRONLY)
