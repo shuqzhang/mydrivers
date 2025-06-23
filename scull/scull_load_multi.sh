@@ -2,7 +2,7 @@
 source $(pwd)/common_functions.sh
 module=$1
 device=$2
-mode="664"
+mode="666"
 
 # Group: since distributions do it differently, look for wheel or use staff
 if grep '^staff:' /etc/group > /dev/null; then

@@ -73,8 +73,8 @@ static int scull_u_open(struct inode* inode, struct file* filp)
     struct scull_dev* dev = NULL;
     spin_lock(&scull_u_lock);
     if (scull_u_count > 0 &&
-        uid_eq(scull_u_owner, current_uid()) &&
-        uid_eq(scull_u_owner, current_euid()) &&
+        !uid_eq(scull_u_owner, current_uid()) &&
+        !uid_eq(scull_u_owner, current_euid()) &&
         !capable(CAP_DAC_OVERRIDE))
     {
         spin_unlock(&scull_u_lock);
@@ -88,7 +88,7 @@ static int scull_u_open(struct inode* inode, struct file* filp)
 
     dev = container_of(inode->i_cdev, struct scull_dev, cdev);
 
-    PDEBUG("hello, open uid access count %d", scull_u_count);
+    PDEBUG("hello, open uid [%d] access count %d", scull_u_owner.val, scull_u_count);
     filp->private_data = dev;
     if ((filp->f_flags & O_ACCMODE) == O_WRONLY)
     {
