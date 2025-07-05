@@ -106,6 +106,7 @@ ssize_t scull_read(struct file* filp, char __user *buff, size_t count, loff_t* f
     int itemsize = quantum * qset;
     int item, s_pos, q_pos, rest;
     ssize_t retval = 0;
+    loff_t left_quatity = dev->size - *f_pos;
 
     PDEBUG("hello, read it");
     PDEBUG("f_pos=%lld count %ld dev->size %ld", *f_pos, count, dev->size);
@@ -128,6 +129,8 @@ ssize_t scull_read(struct file* filp, char __user *buff, size_t count, loff_t* f
     {
         goto out;
     }
+    
+    count = (count > left_quatity) ? left_quatity : count;
     if (count > quantum - q_pos)
     {
         count = quantum - q_pos;

@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        sleep(100);
+        sleep(20);
         if (!gotdata)
         {
             continue;

@@ -7,19 +7,24 @@
 
 char buffer[4096];
 
+void print(const char* buf)
+{
+    write(0, buf, strlen(buf));
+}
+
 int main(int argc, char *argv[])
 {
     int count = 0;
 
     int fd = open("/dev/scull_uid", O_RDWR);
-    printf("Am i running ?\n");
+    print("Am i running ?\n");
 
     while (1)
     {
-        printf("Begin reading ...\n");
+        print("Begin reading ...\n");
         count = read(fd, buffer, 4096);
         write(0, buffer, count);
-        sleep(60);
+        sleep(20);
     }
 
     close(fd);
