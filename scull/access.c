@@ -123,6 +123,90 @@ static struct file_operations scull_u_fops = {
     .release = scull_u_release,
 };
 
+/// third device, instead of ebusy, open device with blocking mode
+static struct scull_dev scull_w_dev;
+// facilities used by this device
+static int scull_w_count = 0;
+static kuid_t scull_w_owner = KUIDT_INIT(0);
+
+static DEFINE_SPINLOCK(scull_w_lock);
+static DECLARE_WAIT_QUEUE_HEAD(scull_w_wait);
+
+static inline int scull_w_available(void)
+{
+    return scull_w_count == 0 ||
+        uid_eq(scull_w_owner, current_uid()) ||
+        uid_eq(scull_w_owner, current_euid()) ||
+        capable(CAP_DAC_OVERRIDE);
+}
+
+static int scull_w_open(struct inode* inode, struct file* filp)
+{
+    int ret = 0;
+    struct scull_dev* dev = NULL;
+    spin_lock(&scull_w_lock);
+    while (!scull_w_available())
+    {
+        spin_unlock(&scull_w_lock);
+        if (filp->f_flags & O_NONBLOCK)
+        {
+            return -EAGAIN;
+        }
+        if (wait_event_interruptible(scull_w_wait, scull_w_available()))
+        {
+            return -ERESTARTSYS;
+        }
+        spin_lock(&scull_w_lock);
+    }
+    
+    if (scull_w_count == 0)
+    {
+        scull_w_owner = current_uid();
+    }
+    scull_w_count++;
+
+    dev = container_of(inode->i_cdev, struct scull_dev, cdev);
+
+    PDEBUG("hello, open blocking uid [%d] access count %d", scull_w_owner.val, scull_w_count);
+    filp->private_data = dev;
+    if ((filp->f_flags & O_ACCMODE) == O_WRONLY)
+    {
+        PDEBUG("hello, open it with write mode");
+        scull_trim(dev);
+    }
+    spin_unlock(&scull_w_lock);
+
+    return ret;
+}
+
+static int scull_w_release(struct inode* inode, struct file* filp)
+{
+    int ret = 0, temp;
+    spin_lock(&scull_w_lock);
+    scull_w_count--;
+    if (scull_w_count == 0)
+    {
+        scull_w_owner = KUIDT_INIT(0);
+    }
+    temp = scull_w_count;
+    spin_unlock(&scull_w_lock);
+    if (temp == 0)
+    {
+        wake_up_interruptible_sync(&scull_w_wait);
+    }
+    return ret;
+}
+
+static struct file_operations scull_w_fops = {
+    .owner = THIS_MODULE,
+    .llseek = no_llseek,
+    .read = scull_read,
+    .write = scull_write,
+    .unlocked_ioctl = scull_ioctl,
+    .open = scull_w_open,
+    .release = scull_w_release,
+};
+
 static struct scull_adev_info
 {
     const char* name;
@@ -130,7 +214,8 @@ static struct scull_adev_info
     struct file_operations* scull_a_fops;
 } scull_adev_infos[] = {
     {"scull_single", &scull_s_dev, &scull_s_fops},
-    {"scull_uid", &scull_u_dev, &scull_u_fops}
+    {"scull_uid", &scull_u_dev, &scull_u_fops},
+    {"scull_wuid", &scull_w_dev, &scull_w_fops}
 };
 
 //static int scull_access_nr_devs = SCULL_ACCESS_NR_DEVS;
