@@ -7,3 +7,4 @@ chmod +x $(pwd)/../misc_progs/*
 ./scull_load_multi.sh scull scull_single 1
 ./scull_load_multi.sh scull scull_uid 1
 ./scull_load_multi.sh scull scull_wuid 1
+./scull_load_multi.sh scull scull_copy 1

@@ -70,7 +70,7 @@ void scull_remove_proc(void);
 #endif
 
 #ifndef SCULL_ACCESS_NR_DEVS
-#define SCULL_ACCESS_NR_DEVS 2  /* scull_single, scull_uid */
+#define SCULL_ACCESS_NR_DEVS 4  /* scull_single, scull_uid, scull_wuid, scull_copy*/
 #endif
 
 /*
