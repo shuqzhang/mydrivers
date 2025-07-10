@@ -239,6 +239,7 @@ static struct scull_dev* scull_c_lookfor_device(dev_t key)
     {
         return NULL;
     }
+    memset(lptr, 0, sizeof(struct scull_listitem));
     scull_trim(&lptr->dev);
     sema_init(&(lptr->dev.sem), 1);
     lptr->key = key;
@@ -256,6 +257,7 @@ static int scull_c_open(struct inode* inode, struct file* filp)
         return -EINVAL;
     }
     key = tty_devnum(current->signal->tty);
+    PDEBUG("tty devno got : %d", key);
     spin_lock(&scull_c_lock);
     dev = scull_c_lookfor_device(key);
     spin_unlock(&scull_c_lock);
@@ -263,7 +265,13 @@ static int scull_c_open(struct inode* inode, struct file* filp)
     {
         return -ENOMEM;
     }
+    if ((filp->f_flags & O_ACCMODE) == O_WRONLY)
+    {
+        scull_trim(dev);
+    }
+
     // TODO: copy data from raw device.
+    filp->private_data = dev;
     return 0;
 }
 
@@ -346,13 +354,20 @@ fail_region:
 void __exit scull_access_cleanup(void)
 {
     int i;
+    struct scull_listitem* lptr;
     PDEBUG("good bye, access control");
 
     for (i = 0; i < scull_access_nr_devs; i++)
     {
         struct scull_dev* dev = scull_adev_infos[i].adev;
         cdev_del(&(dev->cdev));
+        scull_trim(dev);
         unregister_chrdev_region(scull_access_devno[i], 1);
+    }
+
+    list_for_each_entry(lptr, &scull_c_list, scull_list)
+    {
+        scull_trim(&lptr->dev);
     }
 }
 
