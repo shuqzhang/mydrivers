@@ -262,7 +262,7 @@ long scull_ioctl(struct file* filp, unsigned int cmd, unsigned long arg)
                 return -EPERM;
             retval = __get_user(scull_quantum, (int __user *)arg);
             if (retval == 0)
-                retval = __put_user(scull_quantum, (int __user *)arg);
+                retval = __put_user(tmp, (int __user *)arg);
             break;
         case SCULL_IOCHQUANTUM: // sHift
             tmp = scull_quantum;
