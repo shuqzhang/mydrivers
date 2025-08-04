@@ -18,6 +18,10 @@ rm -f /dev/${device}?
 # /sbin/insmod -f ./$module.ko $* || exit 1  // invalid module format error
 /sbin/insmod $2/$module.ko || exit 1
 
+if [ $1x == 'jitx' ]; then
+    exit 0;
+fi
+
 major=`cat /proc/devices | awk "\\$2==\"$module\" {print \\$1}"`
 
 mknod /dev/${device}0 c $major 0
