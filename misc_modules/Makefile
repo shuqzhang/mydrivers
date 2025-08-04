@@ -9,11 +9,11 @@ modules_install:
 	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules_install
 
 clean:
-	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions Module.symvers modules.order
+	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions Module.symvers modules.order *.mod
 
 .PHONY: modules modules_install clean
 
 else
     # called from kernel build system: just declare what our modules are
-    obj-m := sleepy.o
+    obj-m := sleepy.o jit.o
 endif
