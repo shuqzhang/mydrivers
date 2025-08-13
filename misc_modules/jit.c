@@ -40,24 +40,20 @@ static ssize_t jit_fn(struct file *file, char __user *buffer, size_t count, loff
     wait_queue_head_t wq;
     unsigned long data = (unsigned long)PDE_DATA(file_inode(file));
     init_waitqueue_head(&wq);
-<<<<<<< HEAD
-    sbuf = (char *)kmalloc(20, GFP_KERNEL);
-=======
+
     sbuf = (char *)kmalloc(24, GFP_KERNEL);
->>>>>>> [module] jit start
     if (!sbuf)
     {
         PDEBUG("failed to malloc for sbuf.");
         return 0;
     }
-<<<<<<< HEAD
-=======
+
     if (*ppos >= count)
     {
         kfree(sbuf);
         return 0;
     }
->>>>>>> [module] jit start
+
     j0 = jiffies;
     j1 = j0 + HZ;
     switch (data)
@@ -72,20 +68,13 @@ static ssize_t jit_fn(struct file *file, char __user *buffer, size_t count, loff
             break;
     }
     j1 = jiffies;
-<<<<<<< HEAD
-    len = sprintf(sbuf, "%9li %9li\n", j0, j1);
-=======
     len = sprintf(sbuf, "%li %li\n", j0, j1);
->>>>>>> [module] jit start
     if (copy_to_user(buffer, sbuf, len))
     {
         kfree(sbuf);
         return -EFAULT;
     }
-<<<<<<< HEAD
-=======
     *ppos += len;
->>>>>>> [module] jit start
     kfree(sbuf);
     return len;
 }
