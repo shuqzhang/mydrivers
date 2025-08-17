@@ -25,9 +25,9 @@ MODULE_LICENSE("Dual BSD/GPL");
 
 enum jit_files {
 	JIT_BUSY,
-	// JIT_SCHED,
-	// JIT_QUEUE,
-	// JIT_SCHEDTO
+	JIT_SCHED,
+	JIT_QUEUE,
+	JIT_SCHEDTO
 };
 
 // function print the jiffies before and after execute it.
@@ -35,6 +35,7 @@ enum jit_files {
 static ssize_t jit_fn(struct file *file, char __user *buffer, size_t count, loff_t *ppos)
 {
     unsigned long j0, j1;
+    unsigned long delay;
     ssize_t len;
     char* sbuf = NULL;
     wait_queue_head_t wq;
@@ -64,6 +65,23 @@ static ssize_t jit_fn(struct file *file, char __user *buffer, size_t count, loff
                 cpu_relax();
             }
             break;
+        case JIT_SCHED:
+            while(time_before(jiffies, j1))
+            {
+                schedule();
+            }
+            break;
+        case JIT_QUEUE:
+            wait_event_interruptible_timeout(wq, 0, HZ);
+            break;
+        case JIT_SCHEDTO:
+            set_current_state(TASK_INTERRUPTIBLE);
+            delay = HZ;
+            while (0 < delay)
+            {
+                delay = schedule_timeout(delay);
+            }
+            break;
         default:
             break;
     }
@@ -90,16 +108,28 @@ static const struct proc_ops jit_ops = {
 	.proc_lseek = noop_llseek,
 };
 
-int __init jit_init(void)
+int create_various_proc_files(const char* file_name, void* proc_parameter)
 {
+    int success_or_fail = 0;
     struct proc_dir_entry *ent;
-    ent = proc_create_data("jitbusy", S_IRUGO|S_IWUSR, NULL, &jit_ops, (void*)JIT_BUSY);
+    ent = proc_create_data(file_name, S_IRUGO|S_IWUSR, NULL, &jit_ops, proc_parameter);
     if (!ent)
     {
         PDEBUG("Failed to create proc entry for jit.");
-        return -EFAULT;
+        success_or_fail = -EFAULT;
     }
-    return 0;
+    return success_or_fail;
+}
+
+int __init jit_init(void)
+{
+    int ret = 0;
+    create_various_proc_files("jitbusy", (void*)JIT_BUSY);
+    create_various_proc_files("jitsched", (void*)JIT_SCHED);
+    create_various_proc_files("jitqueue", (void*)JIT_QUEUE);
+    create_various_proc_files("jitschedto", (void*)JIT_SCHEDTO);
+
+    return ret;
 }
 
 void __exit jit_cleanup(void)
