@@ -4,6 +4,7 @@
 #include <linux/init.h>
 
 #include <linux/time.h>
+#include <linux/timekeeping.h>
 #include <linux/timer.h>
 #include <linux/kernel.h>
 #include <linux/proc_fs.h>
@@ -24,22 +25,64 @@ MODULE_AUTHOR("Shuqing Zhang");
 MODULE_LICENSE("Dual BSD/GPL");
 
 enum jit_files {
+    JIT_CURRENT,
 	JIT_BUSY,
 	JIT_SCHED,
 	JIT_QUEUE,
 	JIT_SCHEDTO
 };
 
+struct jit_data {
+    enum jit_files jit_file;
+    ssize_t (*jit_fn)(unsigned long data, char __user *buffer, size_t count, loff_t *ppos);
+};
+
+static ssize_t jit_current(unsigned long data, char __user *buffer, size_t count, loff_t *ppos)
+{
+    unsigned long j1;
+    u64 j2;
+    struct timespec64 tv;
+    ssize_t len;
+    char* sbuf = NULL;
+
+    sbuf = (char *)kmalloc(240, GFP_KERNEL);
+    if (!sbuf)
+    {
+        PDEBUG("failed to malloc for sbuf.");
+        return 0;
+    }
+    if (*ppos > 0) // just shown once
+    {
+        kfree(sbuf);
+        return 0;
+    }
+    j1 = jiffies;
+    j2 = get_jiffies_64();
+    ktime_get_real_ts64(&tv);
+
+    len = sprintf(sbuf, "j1 = 0x%08lx, j2 = 0x%016Lx\n"
+        "%40i %09i\n",
+        j1, j2,
+        (int)tv.tv_sec, (int)tv.tv_nsec);
+    if (copy_to_user(buffer, sbuf, len))
+    {
+        kfree(sbuf);
+        return -EFAULT;
+    }
+    *ppos += len;
+    kfree(sbuf);
+    return len;
+}
+
 // function print the jiffies before and after execute it.
 // different ways to get one seconds delay.
-static ssize_t jit_fn(struct file *file, char __user *buffer, size_t count, loff_t *ppos)
+static ssize_t jit_delay(unsigned long data, char __user *buffer, size_t count, loff_t *ppos)
 {
     unsigned long j0, j1;
     unsigned long delay;
     ssize_t len;
     char* sbuf = NULL;
     wait_queue_head_t wq;
-    unsigned long data = (unsigned long)PDE_DATA(file_inode(file));
     init_waitqueue_head(&wq);
 
     sbuf = (char *)kmalloc(24, GFP_KERNEL);
@@ -97,14 +140,37 @@ static ssize_t jit_fn(struct file *file, char __user *buffer, size_t count, loff
     return len;
 }
 
+struct jit_data jd[] = {
+    {JIT_CURRENT, jit_current},
+    {JIT_BUSY, jit_delay},
+    {JIT_QUEUE, jit_delay},
+    {JIT_SCHED, jit_delay},
+    {JIT_SCHEDTO, jit_delay},
+};
+
 static int proc_open(struct inode *inode, struct file *file)
 {
 	return 0;
 }
 
+static ssize_t proc_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos)
+{
+    unsigned long data = (unsigned long)PDE_DATA(file_inode(file));
+    int i = 0;
+    for (; i < sizeof(jd) / sizeof(struct jit_data); i++)
+    {
+        if (jd[i].jit_file == data)
+        {
+            return jd[i].jit_fn(data, buffer, count, ppos);
+        }
+    }
+    PDEBUG("Not support jit file: %lu", data);
+    return jit_current(data, buffer, count, ppos);
+}
+
 static const struct proc_ops jit_ops = {
 	.proc_open  = proc_open,
-	.proc_read  = jit_fn,
+	.proc_read  = proc_read,
 	.proc_lseek = noop_llseek,
 };
 
@@ -124,6 +190,7 @@ int create_various_proc_files(const char* file_name, void* proc_parameter)
 int __init jit_init(void)
 {
     int ret = 0;
+    create_various_proc_files("jitcurrent", (void*)JIT_CURRENT);
     create_various_proc_files("jitbusy", (void*)JIT_BUSY);
     create_various_proc_files("jitsched", (void*)JIT_SCHED);
     create_various_proc_files("jitqueue", (void*)JIT_QUEUE);
