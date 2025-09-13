@@ -11,6 +11,7 @@
 #include <linux/types.h>
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
+#include <linux/timer.h>
 
 #include <asm/hardirq.h>
 
@@ -29,13 +30,24 @@ enum jit_files {
 	JIT_BUSY,
 	JIT_SCHED,
 	JIT_QUEUE,
-	JIT_SCHEDTO
+	JIT_SCHEDTO,
+    JIT_TIMER
 };
 
 struct jit_data {
     enum jit_files jit_file;
     ssize_t (*jit_fn)(unsigned long data, char __user *buffer, size_t count, loff_t *ppos);
 };
+
+struct jit_timer_data {
+    unsigned left_loops;
+    unsigned long prevjiffies;
+    struct timer_list timer;
+    wait_queue_head_t wq;
+    char* buf;
+};
+static const unsigned interval = 100;
+static struct jit_timer_data jitimer_data;
 
 static ssize_t jit_current(unsigned long data, char __user *buffer, size_t count, loff_t *ppos)
 {
@@ -140,12 +152,62 @@ static ssize_t jit_delay(unsigned long data, char __user *buffer, size_t count, 
     return len;
 }
 
+static void jit_timer_fn(unsigned long arg)
+{
+    struct jit_timer_data* data = (struct jit_timer_data*)arg;
+    unsigned long j = jiffies;
+    data->buf += sprintf(data->buf, "%li  %4li  %i   %6i    %i    %s\n",
+        j, j-data->prevjiffies, in_interrupt() ? 1 : 0, current->pid,
+        smp_processor_id(), current->comm);
+
+    if (--data->left_loops > 0)
+    {
+        data->prevjiffies = j;
+        add_timer(&data->timer);
+    }
+    else
+    {
+        wake_up_interruptible(&data.wq);
+    }
+}
+
+static ssize_t jit_timer(unsigned long data, char __user *buffer, size_t count, loff_t *ppos)
+{
+    char* sbuf = NULL;
+
+    sbuf = (char *)kmalloc(2400, GFP_KERNEL);
+    if (!sbuf)
+    {
+        PDEBUG("failed to malloc for sbuf.");
+        return 0;
+    }
+    jitimer_data.buf = sbuf;
+    jitimer_data.buf += sprintf(sbuf, "time        duration     inirq    pid       cpu      proc\n");
+    jitimer_data.left_loops = 10;
+    jitimer_data.prevjiffies = jiffies;
+    init_waitqueue_head(&jitimer_data.wq);
+    init_timer(&jitimer_data.timer);
+    jitimer_data.timer.data = (unsigned long)&jitimer_data;
+    jitimer_data.timer.function = jit_timer_fn;
+    jitimer_data.timer.expires = j + interval;
+    add_timer(&jitimer_data.timer);
+
+    wait_event_interruptible(wq, !left_loops);
+    if (copy_to_user(buffer, sbuf, strlen(sbuf)))
+    {
+        kfree(sbuf);
+        return -EFAULT;
+    }
+    return len;
+}
+
 struct jit_data jd[] = {
     {JIT_CURRENT, jit_current},
     {JIT_BUSY, jit_delay},
     {JIT_QUEUE, jit_delay},
     {JIT_SCHED, jit_delay},
     {JIT_SCHEDTO, jit_delay},
+    {JIT_TIMER, jit_timer},
 };
 
 static int proc_open(struct inode *inode, struct file *file)
@@ -195,13 +257,19 @@ int __init jit_init(void)
     create_various_proc_files("jitsched", (void*)JIT_SCHED);
     create_various_proc_files("jitqueue", (void*)JIT_QUEUE);
     create_various_proc_files("jitschedto", (void*)JIT_SCHEDTO);
+    create_various_proc_files("jitimer", (void*)JIT_TIMER);
 
     return ret;
 }
 
 void __exit jit_cleanup(void)
 {
+    remove_proc_entry("jitcurrent", NULL);
     remove_proc_entry("jitbusy", NULL);
+    remove_proc_entry("jitsched", NULL);
+    remove_proc_entry("jitqueue", NULL);
+    remove_proc_entry("jitschedto", NULL);
+    remove_proc_entry("jitimer", NULL);
 }
 
 module_init(jit_init);
