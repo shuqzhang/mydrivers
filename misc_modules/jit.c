@@ -152,9 +152,9 @@ static ssize_t jit_delay(unsigned long data, char __user *buffer, size_t count, 
     return len;
 }
 
-static void jit_timer_fn(unsigned long arg)
+static void jit_timer_fn(struct timer_list* arg)
 {
-    struct jit_timer_data* data = (struct jit_timer_data*)arg;
+    struct jit_timer_data* data = from_timer(data, arg, timer);
     unsigned long j = jiffies;
     data->buf += sprintf(data->buf, "%li  %4li  %i   %6i    %i    %s\n",
         j, j-data->prevjiffies, in_interrupt() ? 1 : 0, current->pid,
@@ -163,17 +163,20 @@ static void jit_timer_fn(unsigned long arg)
     if (--data->left_loops > 0)
     {
         data->prevjiffies = j;
+        data->timer.expires = j + interval;
         add_timer(&data->timer);
     }
     else
     {
-        wake_up_interruptible(&data.wq);
+        wake_up_interruptible(&data->wq);
     }
 }
 
 static ssize_t jit_timer(unsigned long data, char __user *buffer, size_t count, loff_t *ppos)
 {
+    unsigned long j = 0;
     char* sbuf = NULL;
+    ssize_t len = 0;
 
     sbuf = (char *)kmalloc(2400, GFP_KERNEL);
     if (!sbuf)
@@ -181,19 +184,19 @@ static ssize_t jit_timer(unsigned long data, char __user *buffer, size_t count, 
         PDEBUG("failed to malloc for sbuf.");
         return 0;
     }
+    j = jiffies;
     jitimer_data.buf = sbuf;
     jitimer_data.buf += sprintf(sbuf, "time        duration     inirq    pid       cpu      proc\n");
     jitimer_data.left_loops = 10;
-    jitimer_data.prevjiffies = jiffies;
+    jitimer_data.prevjiffies = j;
     init_waitqueue_head(&jitimer_data.wq);
-    init_timer(&jitimer_data.timer);
-    jitimer_data.timer.data = (unsigned long)&jitimer_data;
-    jitimer_data.timer.function = jit_timer_fn;
+    timer_setup(&jitimer_data.timer, jit_timer_fn, 0);
     jitimer_data.timer.expires = j + interval;
     add_timer(&jitimer_data.timer);
 
-    wait_event_interruptible(wq, !left_loops);
-    if (copy_to_user(buffer, sbuf, strlen(sbuf)))
+    wait_event_interruptible(jitimer_data.wq, !jitimer_data.left_loops);
+    len = strlen(sbuf);
+    if (copy_to_user(buffer, sbuf, len))
     {
         kfree(sbuf);
         return -EFAULT;
