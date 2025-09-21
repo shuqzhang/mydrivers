@@ -31,7 +31,9 @@ enum jit_files {
 	JIT_SCHED,
 	JIT_QUEUE,
 	JIT_SCHEDTO,
-    JIT_TIMER
+    JIT_TIMER,
+    JIT_TASKLET,
+    JIT_TASKLET_HI
 };
 
 struct jit_data {
@@ -39,15 +41,18 @@ struct jit_data {
     ssize_t (*jit_fn)(unsigned long data, char __user *buffer, size_t count, loff_t *ppos);
 };
 
-struct jit_timer_data {
+struct jit_data {
     unsigned left_loops;
     unsigned long prevjiffies;
     struct timer_list timer;
+    struct tasklet_list tlet;
+    bool tlet_hi;
     wait_queue_head_t wq;
     char* buf;
 };
 static const unsigned interval = 100;
-static struct jit_timer_data jitimer_data;
+static struct jit_data jitimer_data;
+static struct jit_data jitasklet_data;
 
 static ssize_t jit_current(unsigned long data, char __user *buffer, size_t count, loff_t *ppos)
 {
@@ -154,7 +159,7 @@ static ssize_t jit_delay(unsigned long data, char __user *buffer, size_t count, 
 
 static void jit_timer_fn(struct timer_list* arg)
 {
-    struct jit_timer_data* data = from_timer(data, arg, timer);
+    struct jit_data* data = from_timer(data, arg, timer);
     unsigned long j = jiffies;
     data->buf += sprintf(data->buf, "%li  %4li  %i   %6i    %i    %s\n",
         j, j-data->prevjiffies, in_interrupt() ? 1 : 0, current->pid,
@@ -204,6 +209,78 @@ static ssize_t jit_timer(unsigned long data, char __user *buffer, size_t count, 
     return len;
 }
 
+static void jit_tlet_fn(struct tasklet_list* arg)
+{
+    struct jit_data* data = from_tasklet(data, arg, tlet);
+    unsigned long j = jiffies;
+    data->buf += sprintf(data->buf, "%li  %4li  %i   %6i    %i    %s\n",
+        j, j-data->prevjiffies, in_interrupt() ? 1 : 0, current->pid,
+        smp_processor_id(), current->comm);
+    if (--data->left_loops)
+    {
+        data->prevjiffies = j;
+        if (data->hi)
+        {
+            tasklet_hi_schedule(&data->tlet);
+        }
+        else
+        {
+            tasklet_schedule(&data->tlet);
+        }
+    }
+    else
+    {
+        wake_up_interruptible(&data.wq);
+    }
+}
+
+static ssize_t jit_tasklet(unsigned long data, char __user *buffer, size_t count, loff_t *ppos)
+{
+    unsigned long j;
+    char* sbuf = NULL;
+    char* buf = NULL;
+    ssize_t len = 0;
+    bool hi = (data == JIT_TASKLET_HI);
+
+    PDEBUG("is tasklet hi ? %s", hi ? "Yes":"No");
+
+    sbuf = (char *)kmalloc(2400, GFP_KERNEL);
+    if (!sbuf)
+    {
+        PDEBUG("failed to malloc for sbuf.");
+        return 0;
+    }
+    j = jiffies;
+    buf = sbuf;
+    buf += sprintf(sbuf, "time        duration     inirq    pid       cpu      proc\n");
+    buf += sprintf(buf, "%li  %4li  %i   %6i    %i    %s\n",
+        j, 0L, in_interrupt() ? 1 : 0, current->pid, smp_processor_id(), current->comm);
+
+    jitasklet_data.left_loops = 10;
+    jitasklet_data.prevjiffies = j;
+    jitasklet_data.buf = buf;
+    jitasklet_data.hi = hi;
+    init_waitqueue_head(&jitasklet_data.wq);
+    tasklet_setup(&jitasklet_data.tlet, jit_tlet_fn, 0);
+    if (hi)
+    {
+        tasklet_hi_schedule(&jitasklet_data.tlet);
+    }
+    else
+    {
+        tasklet_schedule(&jitasklet_data.tlet);
+    }
+
+    wait_event_interruptible(jitasklet_data.wq, !jitasklet_data.left_loops);
+    len = strlen(sbuf);
+    if (copy_to_user(buffer, sbuf, len))
+    {
+        kfree(sbuf);
+        return -EFAULT;
+    }
+    return len;
+}
+
 struct jit_data jd[] = {
     {JIT_CURRENT, jit_current},
     {JIT_BUSY, jit_delay},
@@ -211,6 +288,8 @@ struct jit_data jd[] = {
     {JIT_SCHED, jit_delay},
     {JIT_SCHEDTO, jit_delay},
     {JIT_TIMER, jit_timer},
+    {JIT_TASKLET, jit_tasklet},
+    {JIT_TASKLET_HI, jit_tasklet}
 };
 
 static int proc_open(struct inode *inode, struct file *file)
@@ -261,6 +340,8 @@ int __init jit_init(void)
     create_various_proc_files("jitqueue", (void*)JIT_QUEUE);
     create_various_proc_files("jitschedto", (void*)JIT_SCHEDTO);
     create_various_proc_files("jitimer", (void*)JIT_TIMER);
+    create_various_proc_files("jitasklet", (void*)JIT_TASKLET);
+    create_various_proc_files("jitasklethi", (void*)JIT_TASKLET_HI);
 
     return ret;
 }
@@ -273,6 +354,8 @@ void __exit jit_cleanup(void)
     remove_proc_entry("jitqueue", NULL);
     remove_proc_entry("jitschedto", NULL);
     remove_proc_entry("jitimer", NULL);
+    remove_proc_entry("jitasklet", NULL);
+    remove_proc_entry("jitasklethi", NULL);
 }
 
 module_init(jit_init);
