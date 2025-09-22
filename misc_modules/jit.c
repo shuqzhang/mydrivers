@@ -6,6 +6,7 @@
 #include <linux/time.h>
 #include <linux/timekeeping.h>
 #include <linux/timer.h>
+#include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/proc_fs.h>
 #include <linux/types.h>
@@ -36,7 +37,7 @@ enum jit_files {
     JIT_TASKLET_HI
 };
 
-struct jit_data {
+struct jit_proc_data {
     enum jit_files jit_file;
     ssize_t (*jit_fn)(unsigned long data, char __user *buffer, size_t count, loff_t *ppos);
 };
@@ -45,8 +46,8 @@ struct jit_data {
     unsigned left_loops;
     unsigned long prevjiffies;
     struct timer_list timer;
-    struct tasklet_list tlet;
-    bool tlet_hi;
+    struct tasklet_struct tlet;
+    bool hi;
     wait_queue_head_t wq;
     char* buf;
 };
@@ -209,7 +210,7 @@ static ssize_t jit_timer(unsigned long data, char __user *buffer, size_t count, 
     return len;
 }
 
-static void jit_tlet_fn(struct tasklet_list* arg)
+static void jit_tlet_fn(struct tasklet_struct* arg)
 {
     struct jit_data* data = from_tasklet(data, arg, tlet);
     unsigned long j = jiffies;
@@ -230,7 +231,7 @@ static void jit_tlet_fn(struct tasklet_list* arg)
     }
     else
     {
-        wake_up_interruptible(&data.wq);
+        wake_up_interruptible(&data->wq);
     }
 }
 
@@ -261,7 +262,7 @@ static ssize_t jit_tasklet(unsigned long data, char __user *buffer, size_t count
     jitasklet_data.buf = buf;
     jitasklet_data.hi = hi;
     init_waitqueue_head(&jitasklet_data.wq);
-    tasklet_setup(&jitasklet_data.tlet, jit_tlet_fn, 0);
+    tasklet_setup(&jitasklet_data.tlet, jit_tlet_fn);
     if (hi)
     {
         tasklet_hi_schedule(&jitasklet_data.tlet);
@@ -281,7 +282,7 @@ static ssize_t jit_tasklet(unsigned long data, char __user *buffer, size_t count
     return len;
 }
 
-struct jit_data jd[] = {
+struct jit_proc_data jd[] = {
     {JIT_CURRENT, jit_current},
     {JIT_BUSY, jit_delay},
     {JIT_QUEUE, jit_delay},
@@ -301,7 +302,7 @@ static ssize_t proc_read(struct file *file, char __user *buffer, size_t count, l
 {
     unsigned long data = (unsigned long)PDE_DATA(file_inode(file));
     int i = 0;
-    for (; i < sizeof(jd) / sizeof(struct jit_data); i++)
+    for (; i < sizeof(jd) / sizeof(struct jit_proc_data); i++)
     {
         if (jd[i].jit_file == data)
         {
