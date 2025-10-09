@@ -15,5 +15,5 @@ clean:
 
 else
     # called from kernel build system: just declare what our modules are
-    obj-m := sleepy.o jit.o
+    obj-m := sleepy.o jit.o jiq.o
 endif

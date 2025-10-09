@@ -18,7 +18,7 @@ rm -f /dev/${device}?
 # /sbin/insmod -f ./$module.ko $* || exit 1  // invalid module format error
 /sbin/insmod $2/$module.ko || exit 1
 
-if [ $1x == 'jitx' ]; then
+if [ $1x == 'jitx' -o $1x == 'jiqx' ]; then
     exit 0;
 fi
 

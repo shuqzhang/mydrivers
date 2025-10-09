@@ -4,3 +4,4 @@
 ./common_unloader.sh completion
 ./common_unloader.sh sleepy
 ./common_unloader.sh jit
+./common_unloader.sh jiq
