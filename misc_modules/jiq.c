@@ -23,8 +23,8 @@ MODULE_AUTHOR("Shuqing Zhang");
 MODULE_LICENSE("Dual BSD/GPL");
 
 enum jiq_files {
-    JIT_WQ,
-	JIT_WQ_DELAY
+    JIT_WQ = 0,
+	JIT_WQ_DELAY = 1
 };
 
 struct jiq_proc_data {
@@ -79,6 +79,16 @@ static void jiq_print_delayed_wq(struct work_struct *work)
     schedule_delayed_work(&data->jiq_delayed, data->delay);
 }
 
+static void schedule_wq(struct client_data* data, unsigned long param)
+{
+    if (param == JIT_WQ)
+    {
+        schedule_work(&data->jiq_work);
+        return;
+    }
+    schedule_delayed_work(&data->jiq_delayed, data->delay);
+}
+
 static ssize_t jiq_wq(unsigned long data, char __user *buffer, size_t count, loff_t *ppos)
 {
     ssize_t len;
@@ -91,6 +101,7 @@ static ssize_t jiq_wq(unsigned long data, char __user *buffer, size_t count, lof
         PDEBUG("failed to malloc for sbuf.");
         return 0;
     }
+
     if (*ppos > 0) // just shown once
     {
         kfree(sbuf);
@@ -108,10 +119,10 @@ static ssize_t jiq_wq(unsigned long data, char __user *buffer, size_t count, lof
 
     cdata.buf += sprintf(sbuf, "time   delta   preempt    pid    cpu    command\n");
     prepare_to_wait(&cdata.wq, &wait, TASK_INTERRUPTIBLE);
-    schedule_work(&cdata.jiq_work);
+    schedule_wq(&cdata, data);
     schedule();
     finish_wait(&cdata.wq, &wait);
-
+    len = cdata.buf - sbuf;
     if (copy_to_user(buffer, sbuf, len))
     {
         kfree(sbuf);
@@ -158,6 +169,7 @@ int create_various_proc_files(const char* file_name, void* proc_parameter)
     int success_or_fail = 0;
     struct proc_dir_entry *ent;
     ent = proc_create_data(file_name, S_IRUGO|S_IWUSR, NULL, &jiq_ops, proc_parameter);
+    // PDEBUG("debug 4 proc_parameter = 0x%ld", (long)proc_parameter);
     if (!ent)
     {
         PDEBUG("Failed to create proc entry for jiq.");
