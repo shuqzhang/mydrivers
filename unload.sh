@@ -1,6 +1,7 @@
 #/bin/bash
 
 (cd scull && ./scull_unload.sh)
+(cd scullc && ./scull_unload.sh)
 ./common_unloader.sh completion
 ./common_unloader.sh sleepy
 ./common_unloader.sh jit
