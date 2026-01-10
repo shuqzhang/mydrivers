@@ -18,8 +18,9 @@ SUBDIRS = hello globalmem scull scullc misc_progs completion misc_modules
 LINUX_KERNEL_VERSION=5.15.0
 PROJ_DIR=$(HOME)/mydrivers
 CC=$(CROSS_COMPILE)gcc
+SCULL_COMMON_DIR=$(PROJ_DIR)/common_scull
 
-export LINUX_KERNEL_VERSION HOME KERNEL_CODE_DIR PROJ_DIR CC
+export LINUX_KERNEL_VERSION HOME KERNEL_CODE_DIR PROJ_DIR CC SCULL_COMMON_DIR
 
 all: subdirs
 subdirs:

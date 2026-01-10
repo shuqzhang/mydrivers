@@ -9,7 +9,7 @@ else
 	DBGFLAGS := -O2
 endif
 
-EXTRA_CFLAGS += ${DBGFLAGS} -I$(PROJ_DIR)
+EXTRA_CFLAGS += ${DBGFLAGS} -I$(PROJ_DIR) -I$(SCULL_COMMON_DIR)
 ifneq ($(KERNELRELEASE),)
 # call from kernel build system
 

@@ -1,4 +1,4 @@
-#include "scull.h"
+#include "scullc.h"
 #include <linux/kdev_t.h>
 #include <linux/fs.h>
 #include <linux/capability.h>
