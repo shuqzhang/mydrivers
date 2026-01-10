@@ -408,6 +408,7 @@ static void __exit scull_exit(void)
     for (i = 0; i < scull_nr_devs; i++)
     {
         struct scull_dev* dev = &scull_devices[i];
+        scull_trim(dev);
         cdev_del(&(dev->cdev));
     }
     unregister_chrdev_region(MKDEV(scull_major, scull_minor), scull_nr_devs);

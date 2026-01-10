@@ -10,6 +10,7 @@ int scull_major = 0;
 int scull_minor = 0;
 int scull_quantum = QUANTUM_SIZE;
 int scull_qset_n = QSET_SIZE;
+struct kmem_cache* scull_cache;
 
 void scull_trim(struct scull_dev* dev)
 {
@@ -30,7 +31,8 @@ void scull_trim(struct scull_dev* dev)
                     kfree(data[i]);
                 }
             }
-            kfree(data);
+            // kfree(data);
+            kmem_cache_free(scull_cache, data);
         }
         kfree(dptr);
         dptr = next;
@@ -185,7 +187,8 @@ ssize_t scull_write(struct file* filp, const char __user *buff, size_t count, lo
     }
     if (dptr->data[s_pos] == NULL)
     {
-        dptr->data[s_pos] = kmalloc(quantum, GFP_KERNEL);
+        //dptr->data[s_pos] = kmalloc(quantum, GFP_KERNEL);
+        dptr->data[s_pos] = kmem_cache_alloc(scull_cache, GFP_KERNEL);
         if (dptr->data[s_pos] == NULL)
         {
             printk(KERN_ALERT "alloc quantum data failure");
@@ -283,8 +286,16 @@ static int __init scull_init(void)
         }
     }
     PDEBUG("scull_devices %px", scull_devices);
+    scull_cache = kmem_cache_create("scullc", scull_quantum, 0, SLAB_HWCACHE_ALIGN, NULL);
+    if (!scull_cache)
+    {
+        printk(KERN_WARNING "scullc: create slab cache failed");
+        goto fail_cache;
+    }
 
     return 0;
+
+fail_cache:
 fail_cdev:
     kfree(scull_devices);
 fail_malloc:
@@ -302,12 +313,17 @@ static void __exit scull_exit(void)
     for (i = 0; i < scull_nr_devs; i++)
     {
         struct scull_dev* dev = &scull_devices[i];
+        scull_trim(dev);
         cdev_del(&(dev->cdev));
     }
     unregister_chrdev_region(MKDEV(scull_major, scull_minor), scull_nr_devs);
     //scull_devices = NULL;// create a oops
     //scull_devices[0].size = 0;
     kfree(scull_devices);
+    if (scull_cache)
+    {
+        kmem_cache_destroy(scull_cache);
+    }
 }
 
 module_exit(scull_exit);

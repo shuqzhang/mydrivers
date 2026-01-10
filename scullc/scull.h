@@ -49,6 +49,8 @@ extern int scull_minor;
 extern int scull_quantum;
 extern int scull_qset_n;
 
+extern struct kmem_cache* scull_cache;
+
 #define USE_DEFAULT_CONF
 
 #ifdef USE_DEFAULT_CONF
