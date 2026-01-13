@@ -1,5 +1,3 @@
-#KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-
 PWD := $(shell pwd)
 DEBUG := y
 DBGFLAGS :=
@@ -9,14 +7,10 @@ else
 	DBGFLAGS := -O2
 endif
 
-EXTRA_CFLAGS += ${DBGFLAGS} -I$(PROJ_DIR) -I$(SCULL_COMMON_DIR)
+EXTRA_CFLAGS += ${DBGFLAGS} -I$(PROJ_DIR)
+
 ifneq ($(KERNELRELEASE),)
-# call from kernel build system
-
-scull-objs := ../common_scull/base_scull.o main.o proc.o pipe.o access.o 
-# Kernel modules
-obj-m += scull.o
-
+obj-m += base_scull.o
 else
 
 KERNELDIR ?= $(KERNEL_CODE_DIR)
@@ -26,7 +20,6 @@ default:
 	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
 
 endif
-
 
 modules:
 #	@echo "$(KERNEL_CODE_DIR)"

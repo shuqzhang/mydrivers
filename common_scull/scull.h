@@ -91,7 +91,7 @@ ssize_t scull_write(struct file* filp, const char __user *buff, size_t count, lo
 
 ssize_t scull_read(struct file* filp, char __user *buff, size_t count, loff_t* f_pos);
 
-
+struct scull_qset* scull_follow(struct scull_qset** head, int item);
 
 void scull_trim(struct scull_dev* dev);
 
