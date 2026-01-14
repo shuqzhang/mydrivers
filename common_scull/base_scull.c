@@ -1,4 +1,4 @@
-#include "scull.h"
+#include "scullc.h"
 #include <linux/kdev_t.h>
 #include <linux/fs.h>
 #include <linux/capability.h>
@@ -6,6 +6,7 @@
 
 int scull_quantum = QUANTUM_SIZE;
 int scull_qset_n = QSET_SIZE;
+struct kmem_cache* scull_cache = NULL;
 
 void scull_trim(struct scull_dev* dev)
 {
@@ -23,6 +24,11 @@ void scull_trim(struct scull_dev* dev)
             {
                 if (data[i])
                 {
+                    if (scull_cache)
+                    {
+                        kmem_cache_free(scull_cache, data[i]);
+                        continue;
+                    }
                     kfree(data[i]);
                 }
             }
@@ -159,7 +165,9 @@ ssize_t scull_write(struct file* filp, const char __user *buff, size_t count, lo
     }
     if (dptr->data[s_pos] == NULL)
     {
-        dptr->data[s_pos] = kmalloc(quantum, GFP_KERNEL);
+        dptr->data[s_pos] =
+            scull_cache ? kmem_cache_alloc(scull_cache, GFP_KERNEL)
+                        : kmalloc(quantum, GFP_KERNEL);
         if (dptr->data[s_pos] == NULL)
         {
             printk(KERN_ALERT "alloc quantum data failure");
