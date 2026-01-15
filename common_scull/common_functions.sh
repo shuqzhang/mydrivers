@@ -19,12 +19,13 @@ function install_module()
     expect_num=1
     is_loaded=$1
     module=$2
+    module_dir=$2
     if [ $is_loaded -gt $expect_num ]; then
         echo "There are more than one modules names with $module. need fix scripts"
     elif [ $is_loaded -eq $expect_num ]; then
         echo "$module installed. skip this step"
     else
-        /sbin/insmod ./$module.ko || return 1
+        /sbin/insmod ../$module_dir/$module.ko || return 1
     fi
     return 0
 }
