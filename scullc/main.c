@@ -95,6 +95,7 @@ static int __init scull_init(void)
         scull_devices[i].qset = scull_qset_n;
         scull_devices[i].quantum = scull_quantum;
         scull_devices[i].data = NULL;
+        scull_devices[i].type = scull_type_c;
         sema_init(&scull_devices[i].sem, 1);
         if (!scull_setup_cdev(&scull_devices[i], i))
         {

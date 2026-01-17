@@ -2,11 +2,52 @@
 #include <linux/kdev_t.h>
 #include <linux/fs.h>
 #include <linux/capability.h>
+#include <linux/gfp.h>
 #include <asm/uaccess.h>
 
 int scull_quantum = QUANTUM_SIZE;
 int scull_qset_n = QSET_SIZE;
 struct kmem_cache* scull_cache = NULL;
+
+void scull_free(struct scull_dev* dev, void* data)
+{
+    switch(dev->type)
+    {
+    case scull_type_basic:
+        kfree(data);
+        return;
+    case scull_type_c:
+        kmem_cache_free(scull_cache, data);
+        return;
+    case scull_type_p:
+        free_pages((unsigned long)data, dev->order);
+        return;
+    default:
+        int int_type = (int)dev->type;
+        PDEBUG("unknown scull type %d.", int_type);
+        return;
+    }
+    return;
+}
+
+void* scull_alloc(struct scull_dev* dev)
+{
+    void* ret = NULL;
+    switch(dev->type)
+    {
+    case scull_type_basic:
+        return kmalloc(dev->quantum, GFP_KERNEL);
+    case scull_type_c:
+        return kmem_cache_alloc(scull_cache, GFP_KERNEL);
+    case scull_type_p:
+        return (void*)__get_free_pages(GFP_KERNEL, dev->order);
+    default:
+        int int_type = (int)dev->type;
+        PDEBUG("unknown scull type %d.", int_type);
+        return ret;
+    }
+    return ret;
+}
 
 void scull_trim(struct scull_dev* dev)
 {
@@ -24,12 +65,7 @@ void scull_trim(struct scull_dev* dev)
             {
                 if (data[i])
                 {
-                    if (scull_cache)
-                    {
-                        kmem_cache_free(scull_cache, data[i]);
-                        continue;
-                    }
-                    kfree(data[i]);
+                    scull_free(dev, data[i]);
                 }
             }
             kfree(data);
@@ -165,9 +201,7 @@ ssize_t scull_write(struct file* filp, const char __user *buff, size_t count, lo
     }
     if (dptr->data[s_pos] == NULL)
     {
-        dptr->data[s_pos] =
-            scull_cache ? kmem_cache_alloc(scull_cache, GFP_KERNEL)
-                        : kmalloc(quantum, GFP_KERNEL);
+        dptr->data[s_pos] = scull_alloc(dev);
         if (dptr->data[s_pos] == NULL)
         {
             printk(KERN_ALERT "alloc quantum data failure");

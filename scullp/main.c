@@ -8,6 +8,7 @@ struct scull_dev* scull_devices;
 int scull_nr_devs = 4;
 int scull_major = 0;
 int scull_minor = 0;
+unsigned int scull_order = 0;
 
 static int scull_open(struct inode* inode, struct file* filp)
 {
@@ -93,8 +94,10 @@ static int __init scull_init(void)
     for (i = 0; i < scull_nr_devs; i++)
     {
         scull_devices[i].qset = scull_qset_n;
-        scull_devices[i].quantum = scull_quantum;
+        scull_devices[i].quantum = PAGE_SIZE << scull_order;
         scull_devices[i].data = NULL;
+        scull_devices[i].order = scull_order;
+        scull_devices[i].type = scull_type_p;
         sema_init(&scull_devices[i].sem, 1);
         if (!scull_setup_cdev(&scull_devices[i], i))
         {

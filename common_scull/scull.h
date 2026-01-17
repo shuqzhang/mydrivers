@@ -25,6 +25,13 @@
 #undef PDEBUGG
 #define PDEBUGG(fmt, args...)
 
+enum scull_type
+{
+    scull_type_basic = 0,
+    scull_type_c = 1,
+    scull_type_p = 2
+};
+
 struct scull_qset
 {
     void** data;
@@ -40,6 +47,8 @@ struct scull_dev
     struct semaphore sem;
     struct cdev cdev;
     ssize_t size;
+    unsigned int order; // used in scullp device
+    enum scull_type type;
 };
 
 extern struct scull_dev* scull_devices;
@@ -48,6 +57,7 @@ extern int scull_major;
 extern int scull_minor;
 extern int scull_quantum;
 extern int scull_qset_n;
+extern unsigned int scull_order;
 
 void scull_create_proc(void);
 void scull_remove_proc(void);

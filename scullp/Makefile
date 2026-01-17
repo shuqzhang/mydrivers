@@ -13,9 +13,9 @@ EXTRA_CFLAGS += ${DBGFLAGS} -I$(PROJ_DIR) -I$(SCULL_COMMON_DIR)
 ifneq ($(KERNELRELEASE),)
 # call from kernel build system
 
-sculld-objs := ../common_scull/base_scull.o main.o
+scullp-objs := ../common_scull/base_scull.o main.o
 # Kernel modules
-obj-m += sculld.o
+obj-m += scullp.o
 
 else
 

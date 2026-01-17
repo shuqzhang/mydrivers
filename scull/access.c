@@ -342,6 +342,7 @@ int __init scull_access_init(void)
         scull_adev_infos[i].adev->qset = scull_qset_n;
         scull_adev_infos[i].adev->quantum = scull_quantum;
         scull_adev_infos[i].adev->data = NULL;
+        scull_adev_infos[i].adev->type = scull_type_basic;
         sema_init(&scull_adev_infos[i].adev->sem, 1);
         scull_access_setup_cdev(&scull_adev_infos[i], scull_access_devno[i]);
     }
